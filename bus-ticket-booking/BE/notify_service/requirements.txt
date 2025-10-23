@@ -1,0 +1,16 @@
+fastapi
+pydantic
+pydantic[email]
+pydantic_settings
+uvicorn
+typing
+dotenv
+sqlalchemy 
+mysql-connector-python
+# python-jose[cryptography] 
+# passlib[bcrypt]
+# bcrypt
+python-multipart 
+requests
+email-validator
+

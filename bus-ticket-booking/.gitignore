@@ -1,0 +1,6 @@
+/BE/**/app/__pycache__/
+/BE/**/.env
+/FE/**/node_modules/
+/FE/**/dist/
+/FE/**/build/
+/.vscode/
