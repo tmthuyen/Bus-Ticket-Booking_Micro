@@ -12,8 +12,8 @@ services:
         - ./BE/gateway:/app   
       depends_on:
         - user_api
-        # - trip_api
-        # - booking_api
+        - trip_api
+        - booking_api
         - payment_api
         - notification_api
 
@@ -39,53 +39,53 @@ services:
     volumes:
       - btb_user_db_data:/var/lib/mysql  
     
-  # trip_api:
-  #   build: ./BE/trip_service
-  #   ports:
-  #     - "8003:8000" 
-  #   volumes:
-  #     - ./BE/trip_service:/app
-  #   env_file:
-  #     - ./BE/trip_service/.env
-  #   environment:
-  #     - USER_SERVICE_URL=http://user_api:8000
-  #   depends_on:
-  #     - trip_db
+  trip_api:
+    build: ./BE/trip_service
+    ports:
+      - "8002:8000" 
+    volumes:
+      - ./BE/trip_service:/app
+    env_file:
+      - ./BE/trip_service/.env
+    environment:
+      - USER_SERVICE_URL=http://user_api:8000
+    depends_on:
+      - trip_db
 
-  # trip_db:
-  #   image: mysql:8.0
-  #   restart: always
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: 123456
-  #     MYSQL_DATABASE: btb_trip_db
-  #   ports:
-  #     - "3313:3306"   # expose port khác bên ngoài để tránh trùng
-  #   volumes:
-  #     - trip_db_data:/var/lib/mysql 
+  trip_db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: btb_trip_db
+    ports:
+      - "3313:3306"   # expose port khác bên ngoài để tránh trùng
+    volumes:
+      - btb_trip_db_data:/var/lib/mysql 
     
-  # booking_api:
-  #   build: ./BE/booking_service
-  #   ports:
-  #     - "8003:8000" 
-  #   volumes:
-  #     - ./BE/booking_service:/app
-  #   env_file:
-  #     - ./BE/booking_service/.env
-  #   environment:
-  #     - USER_SERVICE_URL=http://user_api:8000
-  #   depends_on:
-  #     - booking_db
+  booking_api:
+    build: ./BE/booking_service
+    ports:
+      - "8003:8000" 
+    volumes:
+      - ./BE/booking_service:/app
+    env_file:
+      - ./BE/booking_service/.env
+    environment:
+      - USER_SERVICE_URL=http://user_api:8000
+    depends_on:
+      - booking_db
 
-  # booking_db:
-  #   image: mysql:8.0
-  #   restart: always
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: 123456
-  #     MYSQL_DATABASE: btb_booking_db
-  #   ports:
-  #     - "3314:3306"   # expose port khác bên ngoài để tránh trùng
-  #   volumes:
-  #     - booking_db_data:/var/lib/mysql 
+  booking_db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: btb_booking_db
+    ports:
+      - "3314:3306"   # expose port khác bên ngoài để tránh trùng
+    volumes:
+      - btb_booking_db_data:/var/lib/mysql 
 
   notification_api:
     build: ./BE/notify_service
@@ -134,7 +134,7 @@ services:
 
 volumes: 
   btb_user_db_data:
-  # btb_trip_db_data:
-  # btb_booking_db_data:
+  btb_trip_db_data:
+  btb_booking_db_data:
   btb_payment_db_data:
   btb_notification_db_data:
