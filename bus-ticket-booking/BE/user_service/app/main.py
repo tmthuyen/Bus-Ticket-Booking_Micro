@@ -67,7 +67,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
                                                     headers={"WWW-Authenticate": "Bearer"} )
     username = ""
     try:
-        payload = jwt.decode(token, key=settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(token, key=settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         username = payload.get("sub")   
         if username is None:
             return credentials_exception
@@ -91,7 +91,7 @@ async def login_for_access_token(
     if not user:
         return response.errorResponse(msg="Sai tài khoản hoặc mật khẩu")
     
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token_expires = timedelta(minutes=settings.jwt_expire_minutes)
     access_token = utils.create_access_token(
         data={"sub": user.username, "role": user.role}, expires_delta=access_token_expires
     )

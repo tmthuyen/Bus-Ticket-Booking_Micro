@@ -5,7 +5,7 @@ from .config import settings
 
 from sqlalchemy import create_engine, text
 
-ROOT_URL =  f"mysql+mysqlconnector://{settings.db_user}:{settings.db_pass}@{settings.db_host}:{settings.db_port}/"
+ROOT_URL = settings.db_root_url
 
 def ensure_database():
     eng = create_engine(ROOT_URL, pool_pre_ping=True, future=True)

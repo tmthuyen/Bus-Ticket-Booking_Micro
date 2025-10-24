@@ -4,3 +4,4 @@
 /FE/**/dist/
 /FE/**/build/
 /.vscode/
+.env

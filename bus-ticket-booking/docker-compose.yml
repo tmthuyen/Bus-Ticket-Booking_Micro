@@ -2,12 +2,20 @@
 services:
   gateway:
       build: ./BE/gateway 
-      environment:
-        - ROUTES={"\/users":"http://user_api:8000", "\/trips":"http://trip_api:8000", "\/bookings":"http://booking_api:8000", "\/payments":"http://payment_api:8000","\/notifications":"http://notification_api:8000"}
-        - JWT_SECRET=thuyen_user              # trùng với user service
-        - JWT_ALG=HS256
+      env_file:
+        - .env
+      environment:  
+        - ROUTES={"\/users":"http://user_api:8000","\/trips":"http://trip_api:8000", "\/bookings":"http://booking_api:8000", "\/payments":"http://payment_api:8000", "\/notifications":"http://notification_api:8000"}
+        - ALLOWLIST_PATHS=${ALLOWLIST_PATHS}
+        - JWT_SECRET=${JWT_SECRET}
+        - JWT_ALG=${JWT_ALGORITHM}
+        - APP_PORT=${GATEWAY_PORT}
+        - USER_SERVICE_URL=${USER_URL}
+        - TRIP_SERVICE_URL=${TRIP_URL}
+        - BOOKING_SERVICE_URL=${BOOKING_URL}
+        - PAYMENT_SERVICE_URL=${PAYMENT_URL}
       ports:
-        - "8000:8000"
+        - ${GATEWAY_PORT}:${GATEWAY_PORT}
       volumes:
         - ./BE/gateway:/app   
       depends_on:
@@ -20,121 +28,180 @@ services:
   user_api:
     build: ./BE/user_service
     ports:
-      - "8001:8000"
+      - ${USER_EXTERNAL_PORT}:${USER_PORT}
     volumes:
       - ./BE/user_service:/app
     env_file:
-      - ./BE/user_service/.env
+      # - ./BE/user_service/.env
+      - .env
+    environment:
+      - APP_PORT=${USER_PORT}
+      - DB_TYPE=${DB_TYPE}
+      - DB_ROOT_URL=${USER_DB_ROOT_URL}
+      - DB_NAME=${USER_DB_NAME}
+      - DB_URL=${USER_DB_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES}
     depends_on:
       - user_db
 
   user_db:
     image: mysql:8.0
     restart: always
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: btb_user_db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${USER_DB_NAME}
     ports:
-      - "3312:3306"   # expose port khác bên ngoài để tránh trùng
+      - "3312:${DB_PORT}"   # expose port khác bên ngoài để tránh trùng
     volumes:
-      - btb_user_db_data:/var/lib/mysql  
+      - bus_user_data:/var/lib/mysql
     
   trip_api:
     build: ./BE/trip_service
     ports:
-      - "8002:8000" 
+      - ${TRIP_EXTERNAL_PORT}:${TRIP_PORT}
     volumes:
       - ./BE/trip_service:/app
     env_file:
-      - ./BE/trip_service/.env
+      # - ./BE/trip_service/.env
+      - .env
     environment:
-      - USER_SERVICE_URL=http://user_api:8000
+      - APP_PORT=${TRIP_PORT}
+      - DB_TYPE=${DB_TYPE}
+      - DB_NAME=${TRIP_DB_NAME}
+      - DB_ROOT_URL=${TRIP_DB_ROOT_URL}
+      - DB_URL=${TRIP_DB_URL}
+      - USER_SERVICE_URL=${USER_URL}
     depends_on:
       - trip_db
 
   trip_db:
     image: mysql:8.0
     restart: always
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: btb_trip_db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${TRIP_DB_NAME}
     ports:
-      - "3313:3306"   # expose port khác bên ngoài để tránh trùng
+      - "3313:${DB_PORT}"   # expose port khác bên ngoài để tránh trùng
     volumes:
-      - btb_trip_db_data:/var/lib/mysql 
+      - bus_trip_data:/var/lib/mysql
     
   booking_api:
     build: ./BE/booking_service
     ports:
-      - "8003:8000" 
+      - ${BOOKING_EXTERNAL_PORT}:${BOOKING_PORT}
     volumes:
       - ./BE/booking_service:/app
     env_file:
-      - ./BE/booking_service/.env
+      # - ./BE/booking_service/.env
+      - .env
     environment:
-      - USER_SERVICE_URL=http://user_api:8000
+      - APP_PORT=${BOOKING_PORT}
+      - DB_TYPE=${DB_TYPE}
+      - DB_NAME=${BOOKING_DB_NAME}
+      - DB_ROOT_URL=${BOOKING_DB_ROOT_URL}
+      - DB_URL=${BOOKING_DB_URL}
+      - USER_SERVICE_URL=${USER_URL}
+      - TRIP_SERVICE_URL=${TRIP_URL} 
+      - PAYMENT_SERVICE_URL=${PAYMENT_URL}
+      - NOTIFY_SERVICE_URL=${NOTIFICATION_URL}
     depends_on:
-      - booking_db
+      - booking_db 
 
   booking_db:
     image: mysql:8.0
     restart: always
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: btb_booking_db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${BOOKING_DB_NAME}
     ports:
-      - "3314:3306"   # expose port khác bên ngoài để tránh trùng
+      - "3314:${DB_PORT}"   # expose port khác bên ngoài để tránh trùng
     volumes:
-      - btb_booking_db_data:/var/lib/mysql 
+      - bus_booking_data:/var/lib/mysql
 
   notification_api:
     build: ./BE/notify_service
     ports:
-      - "8004:8000"
+      - ${NOTIFICATION_EXTERNAL_PORT}:${NOTIFICATION_PORT}
     volumes:
       - ./BE/notify_service:/app
     env_file:
-      - ./BE/notify_service/.env
+      # - ./BE/notify_service/.env
+      - .env
+    environment:
+      - APP_PORT=${NOTIFICATION_PORT}
+      - DB_TYPE=${DB_TYPE}
+      - DB_NAME=${NOTIFICATION_DB_NAME}
+      - DB_ROOT_URL=${NOTIFICATION_DB_ROOT_URL}
+      - DB_URL=${NOTIFICATION_DB_URL}
+      - USER_SERVICE_URL=${USER_URL}
+      - TRIP_SERVICE_URL=${TRIP_URL}
+      - BOOKING_SERVICE_URL=${BOOKING_URL}
+      - PAYMENT_SERVICE_URL=${PAYMENT_URL}
     depends_on:
-      - notification_db
+      - notification_db 
 
   notification_db:
     image: mysql:8.0
     restart: always
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: btb_notification_db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${NOTIFICATION_DB_NAME}
     ports:
-      - "3315:3306"   
+      - "3315:${DB_PORT}"   # expose port khác bên ngoài để tránh trùng
     volumes:
-      - btb_notification_db_data:/var/lib/mysql
+      - bus_notification_data:/var/lib/mysql
 
   payment_api:
     build: ./BE/payment_service
     ports:
-      - "8005:8000"
+      - ${PAYMENT_EXTERNAL_PORT}:${PAYMENT_PORT}
     volumes:
       - ./BE/payment_service:/app
     env_file:
-      - ./BE/payment_service/.env
+      # - ./BE/payment_service/.env
+      - .env
+    environment:
+      - APP_PORT=${PAYMENT_PORT}
+      - DB_TYPE=${DB_TYPE}
+      - DB_NAME=${PAYMENT_DB_NAME}
+      - DB_ROOT_URL=${PAYMENT_DB_ROOT_URL}
+      - DB_URL=${PAYMENT_DB_URL}
+      - USER_SERVICE_URL=${USER_URL}
+      - BOOKING_SERVICE_URL=${BOOKING_URL}
+      - TRIP_SERVICE_URL=${TRIP_URL}
+      - NOTIFY_SERVICE_URL=${NOTIFICATION_URL}
     depends_on:
-      - payment_db 
+      - payment_db
+      - user_api
+      - booking_api
+      - trip_api
+      - notification_api
       # - student_api
 
   payment_db:
     image: mysql:8.0
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: btb_payment_db
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${PAYMENT_DB_NAME}
     ports:
-      - "3316:3306"   # expose port khác bên ngoài để tránh trùng
+      - "3316:${DB_PORT}"   # expose port khác bên ngoài để tránh trùng
     volumes:
-      - btb_payment_db_data:/var/lib/mysql
+      - bus_payment_data:/var/lib/mysql
 
 volumes: 
-  btb_user_db_data:
-  btb_trip_db_data:
-  btb_booking_db_data:
-  btb_payment_db_data:
-  btb_notification_db_data:
+  bus_user_data:
+  bus_trip_data:
+  bus_booking_data:
+  bus_notification_data:
+  bus_payment_data:
