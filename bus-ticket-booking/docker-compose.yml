@@ -1,10 +1,9 @@
 
 services:
   gateway:
-      build: ./BE/gateway 
-      env_file:
-        - .env
+      build: ./BE/gateway  
       environment:  
+        - FRONTEND_URL=${FRONTEND_URL}
         - ROUTES={"\/users":"http://user_api:8000","\/trips":"http://trip_api:8000", "\/bookings":"http://booking_api:8000", "\/payments":"http://payment_api:8000", "\/notifications":"http://notification_api:8000"}
         - ALLOWLIST_PATHS=${ALLOWLIST_PATHS}
         - JWT_SECRET=${JWT_SECRET}
@@ -24,16 +23,29 @@ services:
         - booking_api
         - payment_api
         - notification_api
+  
+  # frontend:
+  #   build:
+  #     context: ./FE/busbooking
+  #   command: npm start
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - CHOKIDAR_USEPOLLING=true
+  #     - WATCHPACK_POLLING=true
+  #     - WATCHPACK_INTERVAL=1000
+  #     - REACT_APP_GATEWAY_URL=${API_URL}
+
+  #   volumes:
+  #     - ./FE/busbooking:/app
+  #     - /app/node_modules
 
   user_api:
     build: ./BE/user_service
     ports:
       - ${USER_EXTERNAL_PORT}:${USER_PORT}
     volumes:
-      - ./BE/user_service:/app
-    env_file:
-      # - ./BE/user_service/.env
-      - .env
+      - ./BE/user_service:/app 
     environment:
       - APP_PORT=${USER_PORT}
       - DB_TYPE=${DB_TYPE}
@@ -43,14 +55,13 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
       - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES}
+      - JWT_REFRESH_EXPIRE_MINUTES=${JWT_REFRESH_EXPIRE_MINUTES}
     depends_on:
       - user_db
 
   user_db:
     image: mysql:8.0
-    restart: always
-    env_file:
-      - .env
+    restart: always 
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${USER_DB_NAME}
@@ -64,10 +75,7 @@ services:
     ports:
       - ${TRIP_EXTERNAL_PORT}:${TRIP_PORT}
     volumes:
-      - ./BE/trip_service:/app
-    env_file:
-      # - ./BE/trip_service/.env
-      - .env
+      - ./BE/trip_service:/app 
     environment:
       - APP_PORT=${TRIP_PORT}
       - DB_TYPE=${DB_TYPE}
@@ -80,9 +88,7 @@ services:
 
   trip_db:
     image: mysql:8.0
-    restart: always
-    env_file:
-      - .env
+    restart: always 
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${TRIP_DB_NAME}
@@ -96,10 +102,7 @@ services:
     ports:
       - ${BOOKING_EXTERNAL_PORT}:${BOOKING_PORT}
     volumes:
-      - ./BE/booking_service:/app
-    env_file:
-      # - ./BE/booking_service/.env
-      - .env
+      - ./BE/booking_service:/app 
     environment:
       - APP_PORT=${BOOKING_PORT}
       - DB_TYPE=${DB_TYPE}
@@ -115,9 +118,7 @@ services:
 
   booking_db:
     image: mysql:8.0
-    restart: always
-    env_file:
-      - .env
+    restart: always 
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${BOOKING_DB_NAME}
@@ -131,10 +132,7 @@ services:
     ports:
       - ${NOTIFICATION_EXTERNAL_PORT}:${NOTIFICATION_PORT}
     volumes:
-      - ./BE/notify_service:/app
-    env_file:
-      # - ./BE/notify_service/.env
-      - .env
+      - ./BE/notify_service:/app 
     environment:
       - APP_PORT=${NOTIFICATION_PORT}
       - DB_TYPE=${DB_TYPE}
@@ -150,9 +148,7 @@ services:
 
   notification_db:
     image: mysql:8.0
-    restart: always
-    env_file:
-      - .env
+    restart: always 
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${NOTIFICATION_DB_NAME}
@@ -166,10 +162,7 @@ services:
     ports:
       - ${PAYMENT_EXTERNAL_PORT}:${PAYMENT_PORT}
     volumes:
-      - ./BE/payment_service:/app
-    env_file:
-      # - ./BE/payment_service/.env
-      - .env
+      - ./BE/payment_service:/app 
     environment:
       - APP_PORT=${PAYMENT_PORT}
       - DB_TYPE=${DB_TYPE}
@@ -198,6 +191,7 @@ services:
       - "3316:${DB_PORT}"   # expose port khác bên ngoài để tránh trùng
     volumes:
       - bus_payment_data:/var/lib/mysql
+
 
 volumes: 
   bus_user_data:

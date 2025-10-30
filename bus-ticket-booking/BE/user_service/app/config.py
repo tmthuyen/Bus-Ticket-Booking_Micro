@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_secret: str = Field(..., env="JWT_SECRET")
     jwt_algorithm: str = Field(..., env="JWT_ALGORITHM")
     jwt_expire_minutes: int = Field(..., env="JWT_EXPIRE_MINUTES")
+    jwt_refresh_expire_minutes: int = Field(..., env="JWT_REFRESH_EXPIRE_MINUTES")
     
     @property
     def db_url(self) -> str:
@@ -23,12 +24,6 @@ class Settings(BaseSettings):
     # class Config:
     #     env_file = ".env"
     #     env_file_encoding = "utf-8"
-
-import os
-print("=== ENV ===")
-for k, v in os.environ.items():
-    if "JWT" in k:
-        print(k, "=", v)
-
+ 
 settings = Settings()
 

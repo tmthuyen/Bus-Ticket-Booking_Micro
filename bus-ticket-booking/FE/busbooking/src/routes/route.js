@@ -5,11 +5,16 @@ import ErrorPage from "../components/pages/ErrorPage";
 import Home from "../components/pages/Home/Home"; 
 import ProtectedRoute from "./ProtectedRoute";
 import PaymentSuccess from "../components/pages/Payment/PaymentSuccess";
+import Register from "../components/pages/Register";
 
 export const routes = [
   {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register/>,
   },
   {
     path: "/logout",

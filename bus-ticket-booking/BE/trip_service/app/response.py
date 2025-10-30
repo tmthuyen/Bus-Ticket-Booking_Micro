@@ -5,7 +5,7 @@ def successResponse(status_code=200, headers={"Content-type": "application/json"
                     status_code=status_code, 
                     headers=headers,
                     content={
-                                "status": "ok", 
+                                "success": True, 
                                 "message": msg, 
                                 "data": data
                             }
@@ -16,7 +16,7 @@ def errorResponse(status_code=400, headers={"Content-type": "application/json"},
                     status_code=status_code, 
                     headers=headers,
                     content={
-                                "status": "failed", 
+                                "success": False, 
                                 "message": msg, 
                                 "data": data
                             }

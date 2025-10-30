@@ -1,5 +1,5 @@
 # Khơi động backend, tại root: docker compose up --build
-# Khởi động frontend, vào thư mục FE: npm start
+# Khởi động frontend, vào thư mục FE/busbooking: npm start
 # Backup dữ liệu ở thư mục database_script/backup
 
 # Link Swagger:
@@ -53,5 +53,8 @@ gõ lệnh (Cần bật docker app trước)
 # mỗi service có database riêng nha
 - Vô mysql workbench tạo kết nối tương ứng với các port db trong file docker-compose.yml
 
-
+# Thay đổi cập nhật thuộc tính database thì nhớ back up dữ liệu cũ trước hoặc thay đổi column trong db
+docker compose down user_db
+docker volume rm bus-ticket-booking_user_db_data
+docker compose up -d user_db
 

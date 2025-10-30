@@ -13,4 +13,4 @@ COPY . .
 # Run FastAPI with uvicorn
 # CMD ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
 # Dùng shell form để có thể expand biến $PORT
-CMD uvicorn app.main:app --host 0.0.0.0 --port $APP_PORT
+CMD uvicorn app.main:app --reload --host 0.0.0.0 --port $APP_PORT

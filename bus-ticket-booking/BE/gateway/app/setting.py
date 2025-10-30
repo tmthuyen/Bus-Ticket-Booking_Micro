@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # JWT phải trùng SECRET_KEY & ALGORITHM với auth service
     JWT_SECRET: str = Field(..., env="JWT_SECRET")
     JWT_ALG: str = Field(..., env="JWT_ALG")
+    FRONTEND_URL: str = Field(..., env="FRONTEND_URL")
 
     # class Config:
     #     # env_file = ".env"

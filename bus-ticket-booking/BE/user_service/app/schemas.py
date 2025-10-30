@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr 
+from pydantic import BaseModel, ConfigDict, EmailStr 
 from typing import Optional
 from datetime import datetime
+from . import models
 # dinh nghia INPUT, OUTPUT
 class Token(BaseModel):
     access_token: str
@@ -11,38 +12,33 @@ class TokenData(BaseModel):
     role: str | None = None
     
 class UserLogin(BaseModel): 
-    username: str
+    email: str
     password: str
 
-class UserUpdate(BaseModel): 
-    full_name: Optional[str] = None
+class UserBase(BaseModel):
+    email: str = None
+    full_name: str = None
     phone: Optional[str] = None
-    password: Optional[str] = None
-    status: Optional[str] = None
-    balance: Optional[float] = None
+    status: Optional[str] = models.UserStatus.ACTIVE.value
+    role: Optional[str] = models.UserRole.CUSTOMER.value
 
-class UserBase(BaseModel): 
-    username: str
-    full_name: str 
-    email: Optional[EmailStr] = None
-    phone: str
-    # role: Optional[str] = None
-    # address: Optional[str] = None
+class UserCreate(UserBase):
+    password: str
+    confirm_password: str
 
-class UserCreate(UserBase): 
-    password: str  
+class UserUpdate(UserBase): 
+    pass
     
-class User(UserBase):
-    id: int  
-    status: str
-    balance: float
-    created_at: Optional[datetime] = None
+class PasswordChange(BaseModel):
+    id: int
+    old_password: str
+    new_password: str
+    confirm_password: str
     
-    class Config():
-        from_attributes  = True
-        # orm_mode = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+class UserResponse(UserBase):
+    id: int
+    # v2: thay cho orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
-
+    
+ 
