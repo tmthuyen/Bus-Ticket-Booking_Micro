@@ -1,0 +1,25 @@
+.layout-default__header {
+    background-color: aqua;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+}
+
+.layout-default__main { 
+    display: flex;
+    justify-content: center;
+    min-height: 80vh;
+}
+
+.layout-default {
+    background-color: whitesmoke;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.layout-default__footer {
+    background-color: aqua;
+    padding: 10px 20px;
+}

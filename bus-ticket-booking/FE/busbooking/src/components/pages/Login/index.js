@@ -1,197 +1,169 @@
-import { Button, Divider, Flex, Form, Input, notification, Space, Spin, Typography } from 'antd';
+import {
+  Button,
+  Divider,
+  Flex,
+  Form,
+  Input,
+  notification,
+  Space,
+  Spin,
+  Typography,
+} from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import './Login.scss';
-import { API_DOMAIN } from '../../../constants';
 import { useState } from 'react';
-import { getMe, login } from '../../../auth/auth';
+import { getMe, login } from '../../../api/usersApi';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchProfile, loginUser } from '../../../store/actions/usersAction';
 
 const onFinishFailed = (errorInfo) => {
-    console.log('Failed:', errorInfo);
+  console.log('Failed:', errorInfo);
 };
 function Login() {
-    const [api, contextHolder] = notification.useNotification();
-    
-    const [form] = Form.useForm();
-    const [err, setErr] = useState('');
-    const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
-    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const [api, contextHolder] = notification.useNotification();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const {
+    user,
+    token,
+    loading: loadingUser,
+    error,
+    message: messageUser,
+  } = useSelector((state) => state.users);
 
-    const onInputChange = (val) => {
-        setErr('');
-    };
-    const onFinish = async (values) => {
-        
-        const { username, password } = values;
-        const body = new URLSearchParams();
+  const [form] = Form.useForm();
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
 
-        const token = await login(username, password);
-        console.log('Access Token:', token);
-        const me = await getMe();
-        console.log('Logged in user:', me);
-        // mo code comment khi chay
-        body.append('username', username);
-        body.append('password', password);
-        // body.append('device_id', 'web');
-        // backdoor
-        // body.append("username", "52300070");
-        // body.append("password", "123456");
-        setLoading(true);
- 
-        try {
-            const res = await fetch(API_DOMAIN + '/users/auth/login', {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body,
-            });
+  const onInputChange = (val) => {
+    setErr('');
+  };
+  const onFinish = async (values) => {
+    const { username, password } = values;
+    // 0373436164 - Admin25@
+    setLoading(loadingUser);
 
-            await sleep(500);
-            // setLoading(false)
+    try {
+      //   const { responseApi: loginResponse } = await login(username, password);
+      dispatch(loginUser(username, password));
 
-            setTimeout(() => setLoading(false), 1000);
+      console.log('Login successful:', token);
 
-            const rs = await res.json();
-            console.log('rs', rs);
+      dispatch(fetchProfile());
+      console.log('Fetched profile:', user);
 
-            if (res.status === 200) {
-                // const rs = await res.json();
-                // console.log(rs);
-                if (localStorage.getItem('access_token'))
-                    localStorage.removeItem('access_token');
-                localStorage.setItem('access_token', rs.data.access_token);
-                // chuyển hướng sau khi login thành công
-                // console.log(rs);
-                
-                api.success({
-                    message: 'Đăng nhập thành công',
-                    description: `Chào mừng ${username} đã quay trở lại!`,
-                    duration: 5,
-                });
+      api.success({
+        message: messageUser || 'Đăng nhập thành công' ,
+        description: `Chào mừng ${user.full_name} đến với hệ thống đặt vé xe buýt!`,
+      });
 
-                const me = await fetch(API_DOMAIN + '/users/auth/me', {
-                    method: 'GET',
-                    headers: {
-                        Accept: 'application/json',
-                        // 'Content-Type': 'application/x-www-form-urlencoded',
-                        Authorization: `Bearer ${rs.data.access_token}`,
-                    },
-                });
-                const meRs = await me.json();
-                api.info({
-                    message: 'Thông tin người dùng',
-                    description: `Bạn đang đăng nhập với vai trò: ${meRs.data.full_name} - ${meRs.data.role}`,
-                    duration: 5,
-                });
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (error) {
+      console.error('Login failed:', error);
+      setErr('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+    } finally {
+      setLoading(loadingUser);
+    }
+  };
 
-                // navigate('/');
-            } else if (res.status === 401) {
-                
-                setErr(rs.message ? rs.message : rs.detail);
-                // console.log(rs);
-            } else {
-                setErr(rs.message ? rs.message : 'Đã có lỗi xảy ra, vui lòng thử lại.');
-            }
-        } catch (error) {
-            setErr(error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+  return (
+    <Flex align="center" justify="center" vertical>
+      {contextHolder}
+      <div className="login">
+        <Space
+          direction="vertical"
+          style={{ width: '100%' }}
+          size={8}
+          align="center"
+        >
+          <div
+            style={{
+              width: 'auto',
+              height: 56,
+              borderRadius: 16,
+              padding: '0 24px',
+              background: 'linear-gradient(135deg,#22d3ee,#6366f1)',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 20,
+              boxShadow: '0 6px 18px rgba(99,102,241,.35)',
+            }}
+          >
+            Bus Booking System
+          </div>
+          <Typography.Title level={5}>Đăng nhập tài khoản</Typography.Title>
+        </Space>
 
-    return (
-        <Flex align="center" justify="center" vertical>
-         {contextHolder}
-            <div className="login"> 
-                <Space direction="vertical" style={{ width: "100%" }} size={8} align="center">
-                    <div style={{
-                        width: 'auto', height: 56, borderRadius: 16, padding: '0 24px',
-                        background: "linear-gradient(135deg,#22d3ee,#6366f1)",
-                        display: "grid", placeItems: "center", color: "#fff",
-                        fontWeight: 700, fontSize: 20, boxShadow: "0 6px 18px rgba(99,102,241,.35)"
-                    }}>
-                        Bus Booking System
-                    </div>
-                    <Typography.Title level={5}>
-                        Đăng nhập tài khoản
-                    </Typography.Title> 
-                </Space>
+        <Divider style={{ margin: '8px 0' }} />
+        <Form
+          layout={'vertical'}
+          form={form}
+          initialValues={{ remember: true }}
+          style={{ maxWidth: 360 }}
+          onFinish={onFinish}
+          onFinishFailed={onFinishFailed}
+          onValuesChange={onInputChange}
+          autoComplete="off"
+        >
+          <Form.Item
+            label="Tên đăng nhập"
+            name="username"
+            rules={[
+              {
+                required: true,
+                message: 'Please input your username!',
+              },
+            ]}
+          >
+            <Input placeholder="Nhập tên đăng nhập" prefix={<UserOutlined />} />
+          </Form.Item>
 
-                <Divider style={{ margin: "8px 0" }} />
-                <Form
-                    layout={'vertical'}
-                    form={form}
-                    initialValues={{ remember: true }}
-                    style={{ maxWidth: 360 }}
-                    onFinish={onFinish}
-                    onFinishFailed={onFinishFailed}
-                    onValuesChange={onInputChange}
-                    autoComplete="off"
-                >
-                    <Form.Item
-                        label="Tên đăng nhập"
-                        name="username"
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Please input your username!',
-                            },
-                        ]}
-                    >
-                        <Input
-                            placeholder="Nhập tên đăng nhập"
-                            prefix={
-                                <UserOutlined />
-                            }
-                        />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Mật khẩu"
-                        name="password"
-                        rules={[
-                            {
-                                required: true,
-                                message: 'Please input your password!',
-                            },
-                        ]}
-                    >
-                        <Input.Password
-                            placeholder="Nhập mật khẩu"
-                            prefix={
-                                <LockOutlined />
-                            }
-                        />
-                    </Form.Item>
-
-                    <Typography.Text type="danger">{err}</Typography.Text>
-                    <Form.Item label={null}>
-                        <Button
-                            type="primary"
-                            className="login__submit"
-                            htmlType="submit"
-                            loading={loading}
-                            block
-                        >
-                            Đăng nhập
-                        </Button>
-                    </Form.Item>
-                </Form>
-                <Typography.Text>
-                    Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
-                </Typography.Text>
-            </div>
-            <Spin
-                size="large"
-                fullscreen
-                delay={100}
-                spinning={loading}
-                tip={'Dang xac thuc'}
+          <Form.Item
+            label="Mật khẩu"
+            name="password"
+            rules={[
+              {
+                required: true,
+                message: 'Please input your password!',
+              },
+            ]}
+          >
+            <Input.Password
+              placeholder="Nhập mật khẩu"
+              prefix={<LockOutlined />}
             />
-        </Flex>
-    );
+          </Form.Item>
+
+          <Typography.Text type="danger">{err}</Typography.Text>
+          <Form.Item label={null}>
+            <Button
+              type="primary"
+              className="login__submit"
+              htmlType="submit"
+              loading={loading}
+              block
+            >
+              Đăng nhập
+            </Button>
+          </Form.Item>
+        </Form>
+        <Typography.Text>
+          Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
+        </Typography.Text>
+      </div>
+      <Spin
+        size="large"
+        fullscreen
+        delay={100}
+        spinning={loading}
+        tip={'Dang xac thuc'}
+      />
+    </Flex>
+  );
 }
 export default Login;

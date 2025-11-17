@@ -8,14 +8,8 @@ class Settings(BaseSettings):
     # map prefix -> backend base url (tên service trong docker-compose)
     ROUTES: Dict[str, str] = Field(..., env="ROUTES")
     # ROUTES: Dict[str, str] = Field(..., env="ROUTES")
-    print(ROUTES)
-    print(Field(..., env="USER_SERVICE_URL"))
-    # Các path KHÔNG cần JWT (login/đăng ký/health)
-    # ALLOWLIST_PATHS: tuple[str, ...] = (
-    #     "/healthz",
-    #     "/users/login",        # OAuth2 password flow của auth
-    #     "/users",       # đăng ký user (POST)
-    # )
+    print(ROUTES) 
+    
     ALLOWLIST_PATHS: tuple[str, ...] = Field(..., env="ALLOWLIST_PATHS")
     # JWT phải trùng SECRET_KEY & ALGORITHM với auth service
     JWT_SECRET: str = Field(..., env="JWT_SECRET")

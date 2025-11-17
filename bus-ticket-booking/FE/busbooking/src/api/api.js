@@ -3,25 +3,31 @@ import axios from "axios";
 import { API_DOMAIN } from "../constants";
 const api = axios.create({
   baseURL: API_DOMAIN,
+  headers: {
+    "Content-Type": "application/json",
+  },
   withCredentials: true, // để cookie refresh/CSRF tự đi kèm khi bạn dùng /token/refresh
 });
 
 let accessToken = null;
-export function setAccessToken(t) { accessToken = t; }
+const setAccessToken = (t) => { 
+  accessToken = t; 
+}
 
 api.interceptors.request.use((cfg) => {
-  if (accessToken) {
+  const token = accessToken || localStorage.getItem("access_token");
+  if (token) {
     cfg.headers = cfg.headers ?? {};
-    cfg.headers.Authorization = `Bearer ${accessToken}`;
+    cfg.headers.Authorization = `Bearer ${token}`;
   }
   return cfg;
 });
 
 // api error helper: bóc tách lỗi axios
-function parseAxiosError(err) {
+const parseAxiosError = (err) => {
   const resp = err?.response;
   return {
-    status: resp?.status,
+    success: resp?.success,
     data: resp?.data,
     message:
       resp?.data?.message ||
@@ -32,7 +38,7 @@ function parseAxiosError(err) {
 }
 
 // map lỗi Pydantic 422 => set vào field AntD
-function setPydanticErrorsToForm(form, detail) {
+const setPydanticErrorsToForm = (form, detail) => {
   if (!Array.isArray(detail)) return;
   const fields = detail
     .map((d) => {
@@ -45,5 +51,11 @@ function setPydanticErrorsToForm(form, detail) {
     .filter(Boolean);
   if (fields.length) form.setFields(fields);
 }
-export { parseAxiosError, setPydanticErrorsToForm };
+
+export { 
+  setAccessToken,
+  parseAxiosError, 
+  setPydanticErrorsToForm 
+};
+
 export default api;

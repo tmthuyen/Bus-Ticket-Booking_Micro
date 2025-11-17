@@ -75,7 +75,7 @@ def get_trips(
         return errorResponse(msg="origin_code, destination_code, and from_date are required parameters.")
     
     # lay tu repository
-    trips,  total = repository.get_trips_by_origin_destination_and_date(
+    trips, total = repository.get_trips_by_origin_destination_and_date(
         db=db, 
         origin_code=origin_code, 
         destination_code=destination_code, 
@@ -93,11 +93,20 @@ def update_trip(
     trip_data: schemas.Trip, 
     db: Session = Depends(get_db)):
     """Cập nhật thông tin chuyến đi theo ID."""
+    if not trip_id:
+        return errorResponse(msg="Thiếu trip_id.")
+    if not trip_data:
+        return errorResponse(msg="Thiếu dữ liệu cập nhật chuyến đi.")
+    if trip_data.status not in [schemas.TripStatus.SCHEDULED.value, schemas.TripStatus.BOARDING.value,
+                                 schemas.TripStatus.DEPARTED.value, schemas.TripStatus.CANCELLED.value, 
+                                 schemas.TripStatus.COMPLETED.value]:
+        return errorResponse(msg=f"Trạng thái chuyến đi không hợp lệ.")
+
     updated_trip = repository.update_trip(db=db, trip_id=trip_id, trip_data=trip_data)
     return successResponse(msg="Trip updated successfully", data=updated_trip)
 
 # /seats?trip_id=
-@app.get("/seats/", response_model=successResponse, tags=["seats"])
+@app.get("/seats-by-trip/{trip_id}", response_model=successResponse, tags=["seats"])
 def get_seats_by_trip_id(
     trip_id: int,  
     db: Session = Depends(get_db)):

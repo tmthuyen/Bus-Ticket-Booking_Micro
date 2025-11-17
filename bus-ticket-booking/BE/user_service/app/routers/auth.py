@@ -41,34 +41,73 @@ def authenticate_user(username: str, password: str, db:Session=Depends(get_db)) 
     return user, "Xác thực thành công"
 
 # Lấy thông tin người dùng hiện tại từ token
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Lấy thông tin người dùng hiện tại từ token."""
-    credentials_exception =  errorResponse(status_code=401, msg="Không thể xác thực thông tin đăng nhập", 
-                                                    headers={"WWW-Authenticate": "Bearer"} )
-    email = ""
-    try:
-        payload = jwt.decode(token, key=settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        email = payload.get("sub")   
-        if email is None or payload.get("scope") != "access_token":
-            return credentials_exception
-    except JWTError:
-        return credentials_exception
-    user = repository.get_user_by_email(db, email=email)
+# def get_current_user(token: str, db: Session = Depends(get_db)):
+#     """Lấy thông tin người dùng hiện tại từ token."""
+#     credentials_exception =  errorResponse(status_code=401, msg="Không thể xác thực thông tin đăng nhập", 
+#                                                     headers={"WWW-Authenticate": "Bearer"} )
+#     email = ""
+#     try:
+#         payload = jwt.decode(token, key=settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+#         email = payload.get("sub")   
+#         if email is None or payload.get("scope") != "access_token":
+#             return credentials_exception
+#     except JWTError:
+#         return credentials_exception
+#     user = repository.get_user_by_email(db, email=email)
 
-    if user is None:
-        return credentials_exception
-    return user
+#     if user is None:
+#         return credentials_exception
+#     return user
 
 # Định nghĩa các endpoint cho ứng dụng FastAPI
      
 # Endpoint để lấy thông tin người dùng hiện tại
 @router.get("/me", tags=["auth"])
 def read_users_me(
-    current_user: Annotated[schemas.UserBase, Depends(get_current_user)],
+    request: Request, response: Response, db: Session = Depends(get_db)
 ):
     """Lấy thông tin người dùng hiện tại."""
-    return successResponse(msg="Lấy thông tin tài khoản thành công", 
-                                    data=schemas.UserResponse.model_validate(current_user).model_dump())
+    credentials_exception =  errorResponse(
+        status_code=401, 
+        msg="Không thể xác thực thông tin đăng nhập", 
+        headers={"WWW-Authenticate": "Bearer"} 
+    )
+    email = ""
+    token = None
+    authorization_header = request.headers.get("Authorization")
+    if authorization_header:
+        token = authorization_header.removeprefix("Bearer ").strip()
+    if not token:
+        return response_authentication(
+            response=response,
+            status_code=401, 
+            msg="Không có token truy cập", 
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    try:
+        payload = jwt.decode(token, key=settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        email = payload.get("sub")   
+        if email is None or payload.get("scope") != "access_token":
+            return credentials_exception
+    except ExpiredSignatureError:
+        return response_authentication(
+            response=response,
+            status_code=401, 
+            msg="Access token đã hết hạn", 
+            headers={"WWW-Authenticate": "Bearer"} 
+        )
+    except JWTError:
+        return credentials_exception
+    
+    user = repository.get_user_by_email(db, email=email)
+    if user is None:
+        return credentials_exception
+    
+    current_user = schemas.UserResponse.model_validate(user).model_dump()
+    return successResponse(
+        msg="Lấy thông tin tài khoản thành công", 
+        data=current_user
+    )
 
 # Endpoint để đăng ký người dùng mới
 @router.post("/register", tags=["auth"])

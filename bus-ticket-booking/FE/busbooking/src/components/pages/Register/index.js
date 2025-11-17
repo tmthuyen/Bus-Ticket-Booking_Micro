@@ -2,7 +2,7 @@ import { Card, Form, Input, Row, Button, Typography, Col, Progress, Space, Divid
 import { useMemo, useState } from "react";
 import { LockOutlined, MailOutlined, PhoneOutlined, UserOutlined } from "@ant-design/icons";
 import "./Register.css";
-import { register } from "../../../auth/auth";
+import { register } from "../../../api/usersApi";
 import { parseAxiosError, setPydanticErrorsToForm } from "../../../api/api";
 import { Link } from "react-router-dom";
 
