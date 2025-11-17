@@ -1,6 +1,6 @@
-# Khơi động backend, tại root: docker compose up --build
+# Khơi động backend, tại root: docker compose -p bus-ticket-booking up --build (--build khi lần đầu hoặc thêm libs, đổi env)
 # Khởi động frontend, vào thư mục FE/busbooking: npm start
-# Backup dữ liệu ở thư mục database_script/backup
+# Backup dữ liệu ở thư mục database_script/backup; lấy dữ liệu test ở design-db
 
 # Link Swagger:
  - http://localhost:8001/users/docs
