@@ -1,6 +1,11 @@
 # Khơi động backend, tại root: docker compose -p bus-ticket-booking up --build (--build khi lần đầu hoặc thêm libs, đổi env)
-# Khởi động frontend, vào thư mục FE/busbooking: npm start
-# Backup dữ liệu ở thư mục database_script/backup; lấy dữ liệu test ở design-db
+# Khởi động frontend, vào thư mục FE/busbooking: 
+  - npm i
+  - npm start
+# Database:
+ - dữ liệu ở thư mục database_script/
+ - lấy dữ liệu test ở design-db
+ - backup cuối cùng ở database_script/backup
 
 # Link Swagger:
  - http://localhost:8001/users/docs
@@ -19,13 +24,13 @@
  + Thuyên: 
  + Tuấn: 
  + Tâm:  
- + Bao cao + thuyet trinh: All
+ + Báo cáo + thuyết trình: All
 
 # Deadline:
 + Ngày bắt đầu: 23/10/2025
 + Hạn cung cấp API_URL và mô tả của các services: 12:00 5/11/2025
-+ Ngày hoàn thành code: trước 5 ngày submit 
-+ Ngày submit: chưa có
++ Ngày hoàn thành code:  
++ Ngày submit: 12:00 AM 25/11/2025
 
 # Cài đặt docker, mysql workbench, postman
 
