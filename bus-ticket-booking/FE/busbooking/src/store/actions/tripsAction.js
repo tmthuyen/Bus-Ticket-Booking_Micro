@@ -41,11 +41,11 @@ const fetchRoutes = () => {
   }
 };
 
-const fetchTripsByRoute = (origin_code, destination_code, fromDate) => {
+const fetchTripsByRoute = (origin_code, destination_code, from_date) => {
   return async (dispatch) => {
     dispatch({ type: TRIPS_ACTION_TYPES.FETCH_TRIPS_BY_ROUTE_REQUEST });
     try {
-      const { responseApi } = await getTripsByOriginAndDestinationAndFromDate(origin_code, destination_code, fromDate);
+      const { responseApi } = await getTripsByOriginAndDestinationAndFromDate(origin_code, destination_code, from_date);
       // console.log("Fetch Trips By Route responseApi: ", responseApi);
       dispatch({ 
         type: TRIPS_ACTION_TYPES.FETCH_TRIPS_BY_ROUTE_SUCCESS, 

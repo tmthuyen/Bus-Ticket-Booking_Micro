@@ -1,4 +1,5 @@
-# Khơi động backend, tại root: docker compose -p bus-ticket-booking up --build (--build khi lần đầu hoặc thêm libs, đổi env)
+# Khơi động backend, tại root: 
+docker compose -p bus-ticket-booking up --build (--build khi lần đầu hoặc thêm libs, đổi env)
 # Khởi động frontend, vào thư mục FE/busbooking: 
   - npm i
   - npm start

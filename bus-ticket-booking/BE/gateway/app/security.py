@@ -5,6 +5,7 @@ from .setting import settings
 def needs_auth(path: str) -> bool:
     # print("Allowlist path:", settings.ALLOWLIST_PATHS)
     # bỏ qua các path allowlist
+    # print("Checking auth for path:", path)
     return path.rstrip("/") not in settings.ALLOWLIST_PATHS
 
 def verify_jwt(request: Request):

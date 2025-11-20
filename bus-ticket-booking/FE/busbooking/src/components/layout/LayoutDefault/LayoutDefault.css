@@ -1,9 +1,10 @@
 .layout-default__header {
-    background-color: aqua;
+    background-color: var(--color-primary);
+    color: var(--color-text);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 20px;
+    /* padding: 10px 20px; */
 }
 
 .layout-default__main { 
@@ -13,7 +14,7 @@
 }
 
 .layout-default {
-    background-color: whitesmoke;
+    background-color: white;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
