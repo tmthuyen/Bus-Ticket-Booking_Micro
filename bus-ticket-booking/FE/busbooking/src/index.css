@@ -1,3 +1,29 @@
+:root {
+  --color-primary: #2bddf4; /* aqua chủ đạo */
+  --color-primary-dark: #07d3d3; /* aqua đậm */
+  --color-primary-light: #aaf6ff; /* aqua nhạt hơn */
+  --color-primary-lighter: #e4fbff; /* nền siêu nhẹ */
+
+  /* Gradient dùng chung */
+  --gradient-primary: linear-gradient(
+    120deg,
+    var(--color-primary-light),
+    var(--color-primary),
+    var(--color-primary-dark)
+  );
+  /* Gradient nền sáng dịu */
+  --gradient-soft: radial-gradient(
+    circle at top left,
+    var(--color-primary-light) 20%,
+    var(--color-primary-lighter) 80%,
+    #ffffff 90%
+  );
+  
+  --color-bg: #f5fbfb; /* nền chung */
+  --color-text: #023039; /* chữ màu đậm cho dễ đọc */
+  --color-white: #ffffff;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

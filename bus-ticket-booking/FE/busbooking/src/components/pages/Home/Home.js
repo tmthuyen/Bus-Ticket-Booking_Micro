@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import useMessage from 'antd/es/message/useMessage';
 import RouteList from '../Route/RouteList';
+import { LocationOn, Search } from '@mui/icons-material';
 
 const Home = () => {
   const [origin, setOrigin] = useState(null);
@@ -108,16 +109,21 @@ const Home = () => {
               <Grid
                 container
                 size={12}
-                spacing={1}
+                spacing={2}
                 sx={{
-                  border: '1px solid aqua',
-                  borderRadius: '8px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  border: '0px solid aqua',
+                  borderRadius: '16px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
                   padding: '10px',
                   marginBottom: '10px',
                 }}
               >
-                <Grid size={{ xs: 12, sm: 4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <Autocomplete
+                    startIcon={<LocationOn />}
                     disablePortal
                     options={places}
                     getOptionLabel={(option) => option.label}
@@ -130,12 +136,24 @@ const Home = () => {
                         label="Select origin"
                         error={errors.origin}
                         helperText={errors.origin ? 'Origin is required' : ''}
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <>
+                              <LocationOn
+                                sx={{ mr: 1, color: 'primary.main' }}
+                              />
+                              {params.InputProps.startAdornment}
+                            </>
+                          ),
+                        }}
                       />
                     )}
                   />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                   <Autocomplete
+                    startIcon={<LocationOn />}
                     disablePortal
                     options={places}
                     getOptionLabel={(option) => option.label}
@@ -150,11 +168,22 @@ const Home = () => {
                         helperText={
                           errors.destination ? 'Destination is required' : ''
                         }
+                        InputProps={{
+                          ...params.InputProps,
+                          startAdornment: (
+                            <>
+                              <LocationOn
+                                sx={{ mr: 1, color: 'primary.main' }}
+                              />
+                              {params.InputProps.startAdornment}
+                            </>
+                          ),
+                        }}
                       />
                     )}
                   />
                 </Grid>
-                <Grid size={{ xs: 12, sm: 4 }}>
+                <Grid size={{ xs: 12, sm: 12, md: 4 }}>
                   {/* <Date */}
                   <TextField
                     fullWidth
@@ -167,8 +196,13 @@ const Home = () => {
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid size={12} sx={{ textAlign: 'center', mt: 1 }}>
-                  <Button variant="contained" onClick={handleSearchRoute}>
+                <Grid size={{ xs: 12, md: 4 }} sx={{}}>
+                  <Button
+                    variant="contained"
+                    startIcon={<Search />}
+                    onClick={handleSearchRoute}
+                    sx={{ width: '100%' }}
+                  >
                     SEARCH TRIPS
                   </Button>
                 </Grid>

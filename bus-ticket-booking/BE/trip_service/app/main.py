@@ -61,11 +61,11 @@ def get_routes(db: Session = Depends(get_db), origin_code: str = '', destination
     )
 
 # /trips?origin_code=&destination_code=&from_date=&limit=&offset=
-@app.get("/trips", response_model=successResponse, tags=["trips"])
+@app.get("/trips-by-route", response_model=successResponse, tags=["trips"])
 def get_trips(
-    origin_code: str = None, 
-    destination_code: str = None, 
-    from_date: str = None, 
+    origin_code: str, 
+    destination_code: str, 
+    from_date: str, 
     limit: int = 100, 
     offset: int = 0, 
     db: Session = Depends(get_db)):
