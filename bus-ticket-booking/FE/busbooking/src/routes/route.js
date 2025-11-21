@@ -5,9 +5,10 @@ import ErrorPage from '../components/pages/ErrorPage';
 import Home from '../components/pages/Home/Home';
 import Register from '../components/pages/Register';
 import ProtectedRoute from './ProtectedRoute';
-import TripPage from '../components/pages/Trip';  
+import TripPage from '../components/pages/Trip/TripPage';  
 import RoutePage from '../components/pages/Route';
 import LookupTicketPage from '../components/pages/Ticket/LookupTicketPage';
+import BookingPage from '../components/pages/Booking/BookingPage';
 
 export const routes = [
   {
@@ -44,8 +45,8 @@ export const routes = [
         element: <TripPage />,
       },
       {
-        path: 'bookings',
-        element: <div>Bookings</div>,
+        path: 'bookings/:tripId',
+        element: <BookingPage />,
       },
       {
         path: 'lookup-ticket',

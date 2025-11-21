@@ -73,7 +73,7 @@ export default function TripList({
       {loading && (
         <Grid container spacing={2}>
           {Array.from({ length: 4 }).map((_, i) => (
-            <Grid item size={12} md={6} key={i}>
+            <Grid item size={12} key={i}>
               <Card elevation={0} variant="outlined">
                 <Skeleton variant="rectangular" height={120} />
                 <Box sx={{ p: 2 }}>

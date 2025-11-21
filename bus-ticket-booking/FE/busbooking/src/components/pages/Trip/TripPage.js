@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchTripsByRoute } from '../../../store/actions/tripsAction';
-import { Container, Grid, Skeleton, Typography } from '@mui/material';
-import { formatVNDate } from '../../../utils/formatTime';
-import TripList, { DemoTripList } from './TripList';
+import { Container, Grid } from '@mui/material';
+import TripList from './TripList';
 
 const TripPage = () => {
   const [searchParams] = useSearchParams();
@@ -16,6 +15,15 @@ const TripPage = () => {
   const { tripsByRoute, loading: loadingTrips } = useSelector(
     (state) => state.trips
   );
+
+  const navigate = useNavigate();
+
+  const handleChooseTrip = (trip) => {
+    console.log('Choose trip:', trip);
+    navigate(`/bookings/${trip.id}?origin=${origin_code}&destination=${destination_code}&from_date=${from_date}`, {
+      state: { trip: trip, from_date: from_date },
+    });
+  }
 
   const lastParamsRef = useRef(null);
 
@@ -45,8 +53,8 @@ const TripPage = () => {
             title={origin_code.toUpperCase() + ' - ' + destination_code.toUpperCase()}
             subtitleDate={from_date}
             trips={tripsByRoute}
-            onBook={(t) => alert(`Đặt vé cho trip #${t.id}`)}
-            onChooseSeats={(t) => alert(`Xem sơ đồ ghế trip #${t.id}`)}
+            onBook={(t) => handleChooseTrip(t)}
+            onChooseSeats={(t) => handleChooseTrip(t)}
             loading={loadingTrips}
           />
         </Grid>
