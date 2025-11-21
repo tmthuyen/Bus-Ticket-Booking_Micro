@@ -3,6 +3,9 @@
   --color-primary-dark: #07d3d3; /* aqua đậm */
   --color-primary-light: #aaf6ff; /* aqua nhạt hơn */
   --color-primary-lighter: #e4fbff; /* nền siêu nhẹ */
+  --color-white: #ffffff; 
+  --color-secondary: #e2e2e2; /* màu phụ (light grey) */
+  --box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;;
 
   /* Gradient dùng chung */
   --gradient-primary: linear-gradient(

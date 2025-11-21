@@ -1,29 +1,29 @@
-const { TRIPS_ACTION_TYPES: tripsAction } = require("../actions/tripsAction");
+const { BOOKINGS_ACTION_TYPES: bookingsAction } = require("../actions/bookingsAction");
 
-const intitState = {
-  routes: [],
-  tripsByRoute: [], // trips and route info 
-  seatsByTrip: [], // seats and trip info
+const initState = {
+  booking: null,
+  seatsBookedByTrip: null,
+  ticketInfo: null,
   loading: false,
   error: null,
   message: null,
 }
 
-const tripsReducer = (state = intitState, action) => {
+const tripsReducer = (state = initState, action) => {
   switch (action.type) {
-    case tripsAction.FETCH_ROUTES_REQUEST:
+    case bookingsAction.FETCH_ROUTES_REQUEST:
       return {
         ...state,
         loading: true,
       };
-    case tripsAction.FETCH_ROUTES_SUCCESS:
+    case bookingsAction.FETCH_ROUTES_SUCCESS:
       return {
         ...state,
         loading: false,
         routes: action.payload.data,
         message: action.payload.message,
       };
-    case tripsAction.FETCH_ROUTES_FAILURE:
+    case bookingsAction.FETCH_ROUTES_FAILURE:
       return {
         ...state,
         routes: [],
@@ -31,19 +31,19 @@ const tripsReducer = (state = intitState, action) => {
         error: action.payload.error,
         message: action.payload.message,
       };
-    case tripsAction.FETCH_TRIPS_BY_ROUTE_REQUEST:
+    case bookingsAction.FETCH_TRIPS_BY_ROUTE_REQUEST:
       return {
         ...state,
         loading: true,
       };
-    case tripsAction.FETCH_TRIPS_BY_ROUTE_SUCCESS:
+    case bookingsAction.FETCH_TRIPS_BY_ROUTE_SUCCESS:
       return {
         ...state,
         loading: false,
         tripsByRoute: action.payload.data,
         message: action.payload.message,
       };
-    case tripsAction.FETCH_TRIPS_BY_ROUTE_FAILURE:
+    case bookingsAction.FETCH_TRIPS_BY_ROUTE_FAILURE:
       return {
         ...state,
         loading: false,
@@ -51,19 +51,19 @@ const tripsReducer = (state = intitState, action) => {
         error: action.payload.error,
         message: action.payload.message,
       };
-    case tripsAction.FETCH_SEATS_BY_TRIP_REQUEST:
+    case bookingsAction.FETCH_SEATS_BY_TRIP_REQUEST:
       return {
         ...state,
         loading: true,
       };
-    case tripsAction.FETCH_SEATS_BY_TRIP_SUCCESS:
+    case bookingsAction.FETCH_SEATS_BY_TRIP_SUCCESS:
       return {
         ...state,
         loading: false,
         seatsByTrip: action.payload.data,
         message: action.payload.message,
       };
-    case tripsAction.FETCH_SEATS_BY_TRIP_FAILURE:
+    case bookingsAction.FETCH_SEATS_BY_TRIP_FAILURE:
       return {
         ...state,
         seatsByTrip: null,

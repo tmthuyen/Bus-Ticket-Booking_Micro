@@ -23,6 +23,7 @@ def health(): return {"status": "ok"}
 @app.api_route("/{full_path:path}", methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"])
 async def gateway(full_path: str, request: Request):
     path = "/" + full_path
-    if needs_auth(path):
-        verify_jwt(request)
+    # Tat authentication
+    # if needs_auth(path):
+    #     verify_jwt(request)
     return await proxy_request(request)
