@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     db_type: str = Field(..., env="DB_TYPE")
     db_name: str = Field(..., env="DB_NAME")
     db_root_url: str = Field(..., env="DB_ROOT_URL")
-    app_port: int = Field(8001, env="APP_PORT")
+    app_port: int = Field(8000, env="APP_PORT")
     
     @property
     def db_url(self) -> str:

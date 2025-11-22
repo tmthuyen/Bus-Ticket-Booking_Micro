@@ -5,7 +5,8 @@ class Settings(BaseSettings):
     # External Services
     user_service_url: str = Field(..., env="USER_SERVICE_URL")
     trip_service_url: str = Field(..., env="TRIP_SERVICE_URL")
-    booking_service_url: str = Field(..., env="BOOKING_SERVICE_URL") 
+    booking_service_url: str = Field(..., env="BOOKING_SERVICE_URL")
+    payment_service_url: str = Field(..., env="PAYMENT_SERVICE_URL")
     
     #  db and app
     db_type: str = Field(..., env="DB_TYPE")
