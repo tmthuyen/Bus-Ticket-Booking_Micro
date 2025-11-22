@@ -17,7 +17,7 @@ app = FastAPI(title=settings.APP_NAME)
 
 # Gắn limiter vào app state + middleware + handler 429
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, limiter._rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, limiter._limiter)
 app.add_middleware(SlowAPIMiddleware)
 
 # CORS
