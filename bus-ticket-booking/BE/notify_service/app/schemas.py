@@ -16,6 +16,15 @@ class OTPVerify(BaseModel):
     email: EmailStr = Field(..., description="Email đã nhận OTP")
     otp: str = Field(..., min_length=6, max_length=8, description="Mã OTP cần xác thực")
     type: str = Field(..., description="Loại OTP: booking, refund, update")
+    
+# class NotificationBase(BaseModel):
+#     username: str
+#     code: str
+#     expires_at: datetime
+#     used_at: Optional[datetime] = None
+#     created_at: Optional[datetime] = None
+#     class Config:
+#         from_attributes  = True
 
 class OTPResponse(BaseModel):
     """Schema trả về thông tin OTP"""
