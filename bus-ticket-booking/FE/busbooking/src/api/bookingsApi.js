@@ -35,7 +35,7 @@ export const getSeatsBookedByTripApi = async (trip_id) => {
 // tra cuu ve
 export const getTicketByCodeAndEmailApi = async (code, email) => {
   const res = await api.get(
-    `${PREFIX_SERVICE}/ticket-by-code-and-email`, { params: { code, email } }
+    `${PREFIX_SERVICE}/search/${email}/${code}`
   );
   // console.log("getTicketByCodeAndEmail: ", res.data);
   return {

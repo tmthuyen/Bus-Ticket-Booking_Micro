@@ -13,7 +13,7 @@
  - http://localhost:8001/users/docs
  - http://localhost:8002/trips/docs
  - http://localhost:8003/bookings/docs
- - http://localhost:8005/payments/docs
+ - http://localhost:8004/payments/docs
  - http://localhost:8005/notifications/docs
 
 # Link Github: 

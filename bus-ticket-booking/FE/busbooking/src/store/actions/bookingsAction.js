@@ -85,8 +85,10 @@ export const fetchSeatsBookedByTripAction = (trip_id) => {
 export const fetchTicketByCodeAndEmailAction = (code, email) => {
   return async (dispatch) => {
     dispatch({ type: BOOKINGS_ACTION_TYPES.FETCH_TICKET_BY_CODE_AND_EMAIL_REQUEST }); 
+    console.log("fetchTicketByCodeAndEmailAction called with code:", code, "email:", email);
     try {
       const { responseApi } = await getTicketByCodeAndEmailApi(code, email); 
+      console.log("fetchTicketByCodeAndEmailAction responseApi: ", responseApi);
       dispatch({  
         type: BOOKINGS_ACTION_TYPES.FETCH_TICKET_BY_CODE_AND_EMAIL_SUCCESS, 
         payload: { data: responseApi.data, message: "Tra cứu vé thành công" }, 

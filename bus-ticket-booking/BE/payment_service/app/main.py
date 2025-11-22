@@ -55,6 +55,5 @@ def get_payment(payment_id: str, db: Session = Depends(get_db)):
     if db_payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
     return db_payment
-
-Base.metadata.create_all(bind=engine)
+ 
 

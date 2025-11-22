@@ -1,12 +1,12 @@
 // utils/timeVN.js
 // Nhận chuỗi ISO. Nếu KHÔNG có 'Z' hay offset, hiểu là UTC và thêm 'Z'
-export function parseAsUTC(iso) {
+const parseAsUTC = (iso) => {
   if (!iso) return null;
   const looksNaive = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(iso);
   return new Date(looksNaive ? iso + "Z" : iso);
 }
 
-export function formatVN(isoLike) {
+const formatVN = (isoLike) => {
   if (!isoLike) return "—";
   const d = parseAsUTC(isoLike);
   if (Number.isNaN(d.getTime())) return String(isoLike);
@@ -30,10 +30,10 @@ const VN_LOCALE = "vi-VN";
  * Nhận vào chuỗi ISO (YYYY-MM-DD hoặc ISO có giờ),
  * trả ra chuỗi ngày kiểu Việt.
  */
-export function formatVNDate(
+const formatVNDate = (
   dateInput,
   { withWeekday = true, withTime = false, timeZone = VN_TZ } = {}
-) {
+) => {
   if (!dateInput) return "—";
 
   let d;
@@ -78,7 +78,7 @@ export function formatVNDate(
 
 
 /** Hiển thị khoảng ngày kiểu Việt (tự gọn khi cùng tháng/năm) */
-export function formatVNDateRange(startISO, endISO, { timeZone = VN_TZ } = {}) {
+const formatVNDateRange = (startISO, endISO, { timeZone = VN_TZ } = {}) => {
   const start = new Date(startISO);
   const end = new Date(endISO);
   const sameYear  = start.getUTCFullYear() === end.getUTCFullYear();
@@ -86,7 +86,7 @@ export function formatVNDateRange(startISO, endISO, { timeZone = VN_TZ } = {}) {
 
   const d = (opts) => new Intl.DateTimeFormat("vi-VN", { timeZone, ...opts }).format;
   const short = { day: "2-digit", month: "2-digit", year: "numeric" };
-  const noYear = { day: "2-digit", month: "2-digit" };
+  // const noYear = { day: "2-digit", month: "2-digit" };
 
   if (sameYear && sameMonth) {
     // "13–15/12/2025"
@@ -97,15 +97,23 @@ export function formatVNDateRange(startISO, endISO, { timeZone = VN_TZ } = {}) {
 }
 
 
-export function formatHM(totalMinutes) {
+const formatHM = (totalMinutes) => {
   if (!totalMinutes && totalMinutes !== 0) return "--";
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
   return `${h}g ${m}p`;
 }
 
-export function diffMinutes(a, b) {
+const diffMinutes = (a, b) => {
   const start = new Date(a).getTime();
   const end = new Date(b).getTime();
   return Math.max(0, Math.round((end - start) / 60000));
 }
+
+export {
+  formatVN,
+  formatVNDate,
+  formatVNDateRange,
+  formatHM,
+  diffMinutes,
+};

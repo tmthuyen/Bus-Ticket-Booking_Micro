@@ -3,7 +3,7 @@ import { Container, Grid, Typography } from '@mui/material';
 import { Button, Form, Input, message } from 'antd';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchBookingByCodeAction, fetchTicketByCodeAndEmailAction } from '../../../store/actions/bookingsAction';
+import {  fetchTicketByCodeAndEmailAction } from '../../../store/actions/bookingsAction';
 
 const LookupTicketPage = () => {
   const [formLookupTicket] = Form.useForm();
@@ -16,24 +16,27 @@ const LookupTicketPage = () => {
   const [bookingCode, setBookingCode] = useState('');
   const [email, setEmail] = useState('');
 
-  const onFinish = (values) => {
+  const onFinish = async (values) => {
     const { booking_code, email } = values;
     console.log('Finish form lookup ticket:', values);
     setBookingCode(booking_code);
     setEmail(email);
 
     // dispatch action to lookup ticket
-    dispatch(fetchBookingByCodeAction(booking_code));
+    // dispatch(fetchBookingByCodeAction(booking_code));
+    const searchTicket = async () => {
+      await dispatch(fetchTicketByCodeAndEmailAction(booking_code, email));
+    };
+    await searchTicket();
 
-    if (!success){
-      console.log('Ticket info found:', ticketInfo);
+    if (!ticketInfo){ 
       messageAnt.error(messageLookup);
       return;
     }
 
     messageAnt.success('Tra cứu vé thành công!');
     console.log('Lookup ticket message:', messageLookup);
-    console.log('Lookup ticket success:', ticketInfo);
+    console.log('Lookup ticket:', ticketInfo);
     
   };
 
