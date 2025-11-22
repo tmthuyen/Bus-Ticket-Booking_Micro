@@ -152,6 +152,8 @@ def create_access_token(data: dict, expires_minutes: int, extra: dict | None = N
     payload.update({"exp": expire})
     payload.update({"iat": int(now.timestamp())})
     payload.update(extra or {})
+    
+    print("Creating access token with payload:", payload)
     encoded_jwt = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     return encoded_jwt
 

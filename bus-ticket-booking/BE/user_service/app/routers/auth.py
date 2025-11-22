@@ -318,7 +318,7 @@ def logout_user(req: Request, res: Response, db: Session = Depends(get_db)):
 @router.post("/anonymous", tags=["auth"])
 def create_token_anonymous(response: Response):
     anonymous_token = utils.create_access_token(
-        data={"sub": f"anon:{uuid4()}", "role": "guest"}, expires_minutes=5, extra={"scope": "anonymous_token"}
+        data={"sub": f"anon:{uuid4()}", "role": "guest"}, expires_minutes=60, extra={"scope": "anonymous_token"}
     )
     
     return response_authentication(
