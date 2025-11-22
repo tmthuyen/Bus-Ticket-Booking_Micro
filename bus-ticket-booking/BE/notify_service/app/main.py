@@ -1,10 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
+import threading
+import logging
 
 from . import models, schemas, repository, utils, response
 from .database import engine, get_db
 from .config import settings
+from . import rabbitmq_consumer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -36,6 +42,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# RabbitMQ Consumer Thread
+consumer_thread = None
+
+@app.on_event("startup")
+def startup_event():
+    """Start RabbitMQ consumer in background thread"""
+    global consumer_thread
+    
+    rabbitmq_config = {
+        'host': settings.rabbitmq_host,
+        'port': settings.rabbitmq_port,
+        'username': settings.rabbitmq_user,
+        'password': settings.rabbitmq_password
+    }
+    
+    consumer = rabbitmq_consumer.setup_consumer(rabbitmq_config)
+    
+    if consumer:
+        consumer_thread = threading.Thread(target=consumer.start_consuming, daemon=True)
+        consumer_thread.start()
+        logger.info("RabbitMQ Consumer started in background thread")
+    else:
+        logger.warning("RabbitMQ Consumer failed to start - running in HTTP-only mode")
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Shutting down Notification Service...")
+
 
 @app.get("/health", tags=["otp"])
 def health_check():

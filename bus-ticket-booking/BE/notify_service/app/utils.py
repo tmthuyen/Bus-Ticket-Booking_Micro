@@ -6,14 +6,13 @@ import ssl
 import logging
 import random
 import string
+from .config import settings
 
 logger = logging.getLogger(__name__)
-
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 465
-SENDER_EMAIL = "minhtuank27tdtu@gmail.com"
-SENDER_PASSWORD = "scxwnfestbszztcf"
-
+SMTP_SERVER = settings.smtp_server
+SMTP_PORT = settings.smtp_port
+SENDER_EMAIL = settings.sender_email
+SENDER_PASSWORD = settings.sender_password
 def send_email(receiver_email: str, subject: str, body: str, is_html: bool = False) -> bool:
     """
     Gửi email chung
