@@ -146,9 +146,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expires_minutes: int, extra: dict | None = None):
     """Tạo JWT access token."""
+    now = datetime.now(timezone.utc)
     payload = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    expire = now + timedelta(minutes=expires_minutes)
     payload.update({"exp": expire})
+    payload.update({"iat": int(now.timestamp())})
     payload.update(extra or {})
     encoded_jwt = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     return encoded_jwt

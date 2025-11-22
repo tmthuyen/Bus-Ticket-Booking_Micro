@@ -24,6 +24,6 @@ def health(): return {"status": "ok"}
 async def gateway(full_path: str, request: Request):
     path = "/" + full_path
     # Tat authentication
-    # if needs_auth(path):
-    #     verify_jwt(request)
+    if needs_auth(path):
+        verify_jwt(request)
     return await proxy_request(request)

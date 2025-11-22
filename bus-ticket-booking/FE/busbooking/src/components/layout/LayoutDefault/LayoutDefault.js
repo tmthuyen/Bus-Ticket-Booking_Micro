@@ -1,23 +1,17 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import './LayoutDefault.css'; 
 import CustomerHeader from '../../partials/CustomerHeader';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useEffect } from 'react';
 import { fetchRoutes } from '../../../store/actions/tripsAction';
  
 function LayoutDefault() { 
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const dispatch = useDispatch(); 
 
-  const { error } = useSelector((state) => state.trips);
   useEffect(() => {
     dispatch(fetchRoutes());
   }, [dispatch]);
-
-  if (error) {
-    navigate('/error?status=500&message=' + error);
-  }
-
+ 
 
   return (
     <div className="layout-default">

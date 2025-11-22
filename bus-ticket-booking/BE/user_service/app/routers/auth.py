@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from jose import JWTError, jwt, ExpiredSignatureError
 from datetime import timedelta
 from typing import Annotated 
+from uuid import uuid4
 
 from .. import repository, models, schemas, utils
 from ..security import limiter
@@ -39,25 +40,6 @@ def authenticate_user(username: str, password: str, db:Session=Depends(get_db)) 
     if user.status.value == models.UserStatus.BANNED.value:
         return False, "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."
     return user, "Xác thực thành công"
-
-# Lấy thông tin người dùng hiện tại từ token
-# def get_current_user(token: str, db: Session = Depends(get_db)):
-#     """Lấy thông tin người dùng hiện tại từ token."""
-#     credentials_exception =  errorResponse(status_code=401, msg="Không thể xác thực thông tin đăng nhập", 
-#                                                     headers={"WWW-Authenticate": "Bearer"} )
-#     email = ""
-#     try:
-#         payload = jwt.decode(token, key=settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-#         email = payload.get("sub")   
-#         if email is None or payload.get("scope") != "access_token":
-#             return credentials_exception
-#     except JWTError:
-#         return credentials_exception
-#     user = repository.get_user_by_email(db, email=email)
-
-#     if user is None:
-#         return credentials_exception
-#     return user
 
 # Định nghĩa các endpoint cho ứng dụng FastAPI
      
@@ -331,3 +313,21 @@ def logout_user(req: Request, res: Response, db: Session = Depends(get_db)):
         response=res,
         msg="Đăng xuất thành công"
     )
+
+# End point phát token anonymous
+@router.post("/anonymous", tags=["auth"])
+def create_token_anonymous(response: Response):
+    anonymous_token = utils.create_access_token(
+        data={"sub": f"anon:{uuid4()}", "role": "guest"}, expires_minutes=5, extra={"scope": "anonymous_token"}
+    )
+    
+    return response_authentication(
+        response=response,
+        headers={"Content-type": "application/json", "Authorization": f"Bearer {anonymous_token}"},
+        msg="Đăng nhập thành công",
+        data={
+                "bus_anonymous_token": anonymous_token, 
+                "token_type": "bearer"
+            }, 
+        
+    ) 

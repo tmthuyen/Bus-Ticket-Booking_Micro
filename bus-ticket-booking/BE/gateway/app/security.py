@@ -1,5 +1,5 @@
 from fastapi import Request, HTTPException
-from jose import jwt, JWTError
+from jose import jwt, JWTError, ExpiredSignatureError
 from .setting import settings
 
 def needs_auth(path: str) -> bool:
@@ -15,8 +15,11 @@ def verify_jwt(request: Request):
     token = auth.split()[1]
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALG])
+    except ExpiredSignatureError:
+        raise HTTPException(401, "Token đã hết hạn")
     except JWTError:
-        raise HTTPException(401, "Token không hợp lệ hoặc đã hết hạn")
+        raise HTTPException(401, "Token không hợp lệ")
+    
     if payload.get("type") not in (None, "access"):  # chấp nhận token không gắn 'type' hoặc 'access'
         raise HTTPException(401, "Invalid token type")
     return payload

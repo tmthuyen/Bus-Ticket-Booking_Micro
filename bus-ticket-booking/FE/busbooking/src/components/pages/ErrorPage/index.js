@@ -1,5 +1,5 @@
 import { Button } from 'antd';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 function ErrorPage(props) {
   const { status, message } = props;

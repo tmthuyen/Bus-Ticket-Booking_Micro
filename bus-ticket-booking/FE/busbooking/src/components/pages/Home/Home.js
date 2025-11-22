@@ -1,10 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import {
-  fetchRoutes,
-  fetchTripsByRoute,
-} from '../../../store/actions/tripsAction';
-import { Link, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux'; 
+import { useNavigate } from 'react-router-dom';
 import {
   Autocomplete,
   Button,
@@ -28,10 +24,9 @@ const Home = () => {
   });
 
   const navigate = useNavigate();
-  const [messageApi, contextHolder] = useMessage();
-  const dispatch = useDispatch();
+  const [messageApi, contextHolder] = useMessage(); 
 
-  const { routes, tripsByRoute, loading } = useSelector((state) => state.trips);
+  const { routes, loading } = useSelector((state) => state.trips);
 
   const places = useMemo(() => {
     const map = new Map();

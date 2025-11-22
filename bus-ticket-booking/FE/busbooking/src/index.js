@@ -1,20 +1,23 @@
-import ReactDOM from "react-dom/client";
-import "./index.css";
-import App from "./App";
-import reportWebVitals from "./reportWebVitals";
-import { BrowserRouter } from "react-router-dom";
-import { Provider } from "react-redux";
+import ReactDOM from 'react-dom/client';
+import reportWebVitals from './reportWebVitals';
+import { BrowserRouter } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { App as AntApp } from "antd";
+import { CssBaseline, ThemeProvider } from '@mui/material';
+import './index.css';
+import App from './App';
+import theme from './config/themeMui';
 import store from './store/store';
-import { CssBaseline, ThemeProvider } from "@mui/material";
-import theme from "./config/themeMui";
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <BrowserRouter>
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <App />
+        <AntApp>
+          <App />
+        </AntApp>
       </ThemeProvider>
     </Provider>
   </BrowserRouter>
