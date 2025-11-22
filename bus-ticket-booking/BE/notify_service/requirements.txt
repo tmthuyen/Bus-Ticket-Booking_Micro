@@ -13,4 +13,5 @@ mysql-connector-python
 python-multipart 
 requests
 email-validator
+pika==1.3.2
 

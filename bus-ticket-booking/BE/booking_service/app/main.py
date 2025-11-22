@@ -3,11 +3,16 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session 
 from datetime import timedelta
 from typing import Annotated 
+import logging
 
 from . import repository, models, schemas, utils, response
 from .database import engine, get_db
 from .config import settings  
 from fastapi.middleware.cors import CORSMiddleware
+from . import rabbitmq_producer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 models.Base.metadata.create_all(bind=engine)
  
@@ -35,6 +40,38 @@ app.add_middleware( # cau hinh CORS
     allow_methods=["*"],  # Cho phép tất cả các phương thức HTTP
     allow_headers=["*"],  # Cho phép tất cả các tiêu đề
 )
+
+
+# RabbitMQ Producer instance
+producer = None
+
+@app.on_event("startup")
+def startup_event():
+    """Initialize RabbitMQ producer on startup"""
+    global producer
+    
+    rabbitmq_config = {
+        'host': settings.rabbitmq_host,
+        'port': settings.rabbitmq_port,
+        'username': settings.rabbitmq_user,
+        'password': settings.rabbitmq_password
+    }
+    
+    producer = rabbitmq_producer.get_producer(rabbitmq_config)
+    
+    if producer and producer.channel:
+        logger.info("RabbitMQ Producer initialized successfully")
+    else:
+        logger.warning("RabbitMQ Producer failed to initialize - falling back to HTTP notifications")
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    """Cleanup on shutdown"""
+    global producer
+    if producer:
+        producer.close()
+    logger.info("Booking Service shutdown complete")
 
 
 @app.get("/health", tags=["bookings"])
@@ -209,6 +246,24 @@ def confirm_booking(
     # Xác nhận booking
     updated_booking = repository.confirm_booking(db, booking_id)
     
+    # Gửi email xác nhận qua RabbitMQ
+    global producer
+    if producer and producer.channel:
+        try:
+            seat_numbers = [seat.seat_number for seat in updated_booking.seat_assignments]
+            producer.publish_booking_confirmation(
+                to_email=updated_booking.email,
+                booking_code=updated_booking.booking_code,
+                customer_name=updated_booking.full_name,
+                trip_info=f"Trip ID: {updated_booking.trip_id}",
+                seat_numbers=seat_numbers,
+                total_price=float(updated_booking.total_price),
+                booking_time=updated_booking.created_at.strftime("%d/%m/%Y %H:%M:%S")
+            )
+            logger.info(f"Published booking confirmation event for {updated_booking.booking_code}")
+        except Exception as e:
+            logger.error(f"Failed to publish booking confirmation: {e}")
+    
     return response.successResponse(
         msg="Xác nhận booking thành công",
         data={
@@ -248,6 +303,20 @@ def cancel_booking(
     # Hủy booking
     updated_booking = repository.cancel_booking(db, booking_id)
     
+    # Gửi email hủy booking qua RabbitMQ
+    global producer
+    if producer and producer.channel:
+        try:
+            producer.publish_booking_cancellation(
+                to_email=updated_booking.email,
+                booking_code=updated_booking.booking_code,
+                customer_name=updated_booking.full_name,
+                cancellation_reason="Khách hàng yêu cầu hủy"
+            )
+            logger.info(f"Published booking cancellation event for {updated_booking.booking_code}")
+        except Exception as e:
+            logger.error(f"Failed to publish booking cancellation: {e}")
+    
     return response.successResponse(
         msg="Hủy booking thành công",
         data={
@@ -281,6 +350,20 @@ def refund_booking(
     
     # Hoàn tiền
     updated_booking = repository.refund_booking(db, booking_id)
+    
+    # Gửi email hoàn tiền qua RabbitMQ
+    global producer
+    if producer and producer.channel:
+        try:
+            producer.publish_booking_refund(
+                to_email=updated_booking.email,
+                booking_code=updated_booking.booking_code,
+                customer_name=updated_booking.full_name,
+                refund_amount=float(updated_booking.total_price)
+            )
+            logger.info(f"Published booking refund event for {updated_booking.booking_code}")
+        except Exception as e:
+            logger.error(f"Failed to publish booking refund: {e}")
     
     return response.successResponse(
         msg="Hoàn tiền thành công",
