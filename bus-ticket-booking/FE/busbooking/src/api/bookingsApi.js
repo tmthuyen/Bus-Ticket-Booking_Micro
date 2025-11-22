@@ -24,7 +24,7 @@ export const createBookingApi = async (body) => {
 // lay thong tin ghe da dat cua 1 chuyen di
 export const getSeatsBookedByTripApi = async (trip_id) => {
   const res = await api.get(
-    `${PREFIX_SERVICE}/seats-booked-by-trip/${trip_id}`
+    `${PREFIX_SERVICE}/trip/${trip_id}/booked-seats`
   );
   // console.log("getSeatsByTrip: ", res.data);
   return {
@@ -42,3 +42,14 @@ export const getTicketByCodeAndEmailApi = async (code, email) => {
     responseApi: res.data,
   }; // tuỳ backend trả data gì
 };
+
+// lay thong tin booking theo booking_code
+export const getBookingByCodeApi = async (booking_code) => {
+  const res = await api.get(
+    `${PREFIX_SERVICE}/code/${booking_code}`
+  );
+  // console.log("getBookingByCode: ", res.data);
+  return {
+    responseApi: res.data,
+  }; // tuỳ backend trả data gì
+}

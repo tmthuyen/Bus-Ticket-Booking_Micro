@@ -1,4 +1,3 @@
-import { message } from "antd";
 import { USERS_ACTION_TYPES } from "../actions/usersAction";
 
 const initialState = {
@@ -35,6 +34,7 @@ const usersReducer = (state = initialState, action) => {
         loading: true,
       };
     case USERS_ACTION_TYPES.FETCH_ME_SUCCESS:
+      console.log("usersReducer - FETCH_ME_SUCCESS action.payload.data: ", action.payload.data);
       return {
         ...state,
         loading: false,

@@ -1,79 +1,126 @@
+import { message } from "antd";
+
 const { BOOKINGS_ACTION_TYPES: bookingsAction } = require("../actions/bookingsAction");
 
-const initState = {
-  booking: null,
+const initState = { 
+  bookingCreated: null,
   seatsBookedByTrip: null,
   ticketInfo: null,
+  success: false,
   loading: false,
   error: null,
   message: null,
 }
 
-const tripsReducer = (state = initState, action) => {
+const bookingsReducer = (state = initState, action) => {
   switch (action.type) {
-    case bookingsAction.FETCH_ROUTES_REQUEST:
+    case bookingsAction.CREATE_BOOKINGS_REQUEST:
       return {
         ...state,
         loading: true,
+        error: null,
+        success: false,
+        message: null,
       };
-    case bookingsAction.FETCH_ROUTES_SUCCESS:
+    case bookingsAction.CREATE_BOOKINGS_SUCCESS:
       return {
         ...state,
         loading: false,
-        routes: action.payload.data,
+        bookingCreated: action.payload.data,
         message: action.payload.message,
+        error: null,
+        success: true,
       };
-    case bookingsAction.FETCH_ROUTES_FAILURE:
+    case bookingsAction.CREATE_BOOKINGS_FAILURE:
       return {
         ...state,
-        routes: [],
+        bookingCreated: null,
         loading: false,
         error: action.payload.error,
         message: action.payload.message,
+        success: false,
       };
-    case bookingsAction.FETCH_TRIPS_BY_ROUTE_REQUEST:
+    case bookingsAction.FETCH_BOOKING_BY_CODE_REQUEST:
       return {
         ...state,
         loading: true,
+        error: null,
+        success: false,
+        message: null,
       };
-    case bookingsAction.FETCH_TRIPS_BY_ROUTE_SUCCESS:
+    case bookingsAction.FETCH_BOOKING_BY_CODE_SUCCESS:
       return {
         ...state,
         loading: false,
-        tripsByRoute: action.payload.data,
+        bookingCreated: action.payload.data,
         message: action.payload.message,
+        error: null,
+        success: true,
       };
-    case bookingsAction.FETCH_TRIPS_BY_ROUTE_FAILURE:
+    case bookingsAction.FETCH_BOOKING_BY_CODE_FAILURE:
       return {
         ...state,
+        bookingCreated: null,
         loading: false,
-        tripsByRoute: [],
         error: action.payload.error,
         message: action.payload.message,
+        success: false,
       };
-    case bookingsAction.FETCH_SEATS_BY_TRIP_REQUEST:
+    case bookingsAction.FETCH_SEATS_BOOKED_BY_TRIP_REQUEST:
       return {
         ...state,
         loading: true,
+        error: null,
+        success: false,
+        message: null,
       };
-    case bookingsAction.FETCH_SEATS_BY_TRIP_SUCCESS:
+    case bookingsAction.FETCH_SEATS_BOOKED_BY_TRIP_SUCCESS:
       return {
         ...state,
         loading: false,
-        seatsByTrip: action.payload.data,
+        seatsBookedByTrip: action.payload.data,
         message: action.payload.message,
+        error: null,
+        success: true,
       };
-    case bookingsAction.FETCH_SEATS_BY_TRIP_FAILURE:
+    case bookingsAction.FETCH_SEATS_BOOKED_BY_TRIP_FAILURE:
       return {
         ...state,
-        seatsByTrip: null,
+        seatsBookedByTrip: null,
         loading: false,
         error: action.payload.error,
         message: action.payload.message,
+        success: false,
+      };
+    case bookingsAction.FETCH_TICKET_BY_CODE_AND_EMAIL_REQUEST:
+      return {
+        ...state,
+        loading: true,
+        error: null,
+        success: false,
+        message: null,
+      };
+    case bookingsAction.FETCH_TICKET_BY_CODE_AND_EMAIL_SUCCESS:
+      return {
+        ...state,
+        loading: false,
+        ticketInfo: action.payload.data,
+        message: action.payload.message,
+        error: null,
+        success: true,
+      };
+    case bookingsAction.FETCH_TICKET_BY_CODE_AND_EMAIL_FAILURE:
+      return {
+        ...state,
+        ticketInfo: null,
+        loading: false,
+        error: action.payload.error,
+        message: action.payload.message,
+        success: false,
       };
     default:
       return state;
   }
 }
 
-export default tripsReducer;
+export default bookingsReducer;

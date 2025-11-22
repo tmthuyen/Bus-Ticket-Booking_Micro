@@ -1,10 +1,13 @@
 import { parseAxiosError } from "../../api/api"; 
-import { createBookingApi, getSeatsBookedByTripApi, getTicketByCodeAndEmailApi } from "../../api/bookingsApi";
+import { createBookingApi, getBookingByCodeApi, getSeatsBookedByTripApi, getTicketByCodeAndEmailApi } from "../../api/bookingsApi";
 
 const BOOKINGS_ACTION_TYPES = {
   CREATE_BOOKINGS_REQUEST: "CREATE_BOOKINGS_REQUEST",
   CREATE_BOOKINGS_SUCCESS: "CREATE_BOOKINGS_SUCCESS",
   CREATE_BOOKINGS_FAILURE: "CREATE_BOOKINGS_FAILURE",
+  FETCH_BOOKING_BY_CODE_REQUEST: "FETCH_BOOKING_BY_CODE_REQUEST",
+  FETCH_BOOKING_BY_CODE_SUCCESS: "FETCH_BOOKING_BY_CODE_SUCCESS",
+  FETCH_BOOKING_BY_CODE_FAILURE: "FETCH_BOOKING_BY_CODE_FAILURE",
   FETCH_SEATS_BOOKED_BY_TRIP_REQUEST: "FETCH_SEATS_BOOKED_BY_TRIP_REQUEST",
   FETCH_SEATS_BOOKED_BY_TRIP_SUCCESS: "FETCH_SEATS_BOOKED_BY_TRIP_SUCCESS",
   FETCH_SEATS_BOOKED_BY_TRIP_FAILURE: "FETCH_SEATS_BOOKED_BY_TRIP_FAILURE",
@@ -34,6 +37,26 @@ export const createBookingAction = (bookingData) => {
           error: parsedError.message || "Tạo vé dự định thất bại", 
           message: parsedError.message || "Tạo vé dự định thất bại" 
         } 
+      });
+    }
+  }
+}
+
+export const fetchBookingByCodeAction = (booking_code) => {
+  return async (dispatch) => {
+    dispatch({ type: BOOKINGS_ACTION_TYPES.FETCH_BOOKING_BY_CODE_REQUEST });
+    try {
+      const { responseApi } = await getBookingByCodeApi(booking_code);
+      dispatch({
+        type: BOOKINGS_ACTION_TYPES.FETCH_BOOKING_BY_CODE_SUCCESS,
+        payload: { data: responseApi.data, message: "Lấy thông tin booking thành công" },
+      });
+    } catch (error) {
+      console.error("fetchBookingByCodeAction error: ", error);
+      const parsedError = parseAxiosError(error);
+      dispatch({
+        type: BOOKINGS_ACTION_TYPES.FETCH_BOOKING_BY_CODE_FAILURE,
+        payload: { error: parsedError.message || "Lấy thông tin booking thất bại", message: parsedError.message || "Lấy thông tin booking thất bại" },
       });
     }
   }

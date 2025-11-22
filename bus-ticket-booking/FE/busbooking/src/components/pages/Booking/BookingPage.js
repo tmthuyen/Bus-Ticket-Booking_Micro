@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchSeatsByTrip } from '../../../store/actions/tripsAction';
 import {
   Button,
   Container,
   Divider,
-  Grid,
-  Table,
+  Grid, 
   Typography,
 } from '@mui/material';
 import CustomerBookingForm from './CustomerBookingForm';
@@ -15,22 +14,28 @@ import TicketPolicy from './TicketPolicy';
 import BookingSummary from './BookingSummary';
 import SeatMap from './SeatMap'; 
 import { notification } from 'antd'; 
-import { WarningOutlined } from '@ant-design/icons';
+import { WarningOutlined } from '@ant-design/icons'; 
+import { createBookingAction } from '../../../store/actions/bookingsAction';
 
 const BookingPage = () => {
   // hooks
   const { tripId } = useParams();
   const location = useLocation();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  
   const [apiNotification, contextHolder] = notification.useNotification();
-  const openErrorNotification = (message, desc) => {
-    apiNotification.error({
-      message: message,
-      description: desc,
-      icon: <WarningOutlined style={{ color: '#fa0707ff' }} />,
-      duration: 2,
-    });
-  };
+  const openErrorNotification = useCallback(
+    (message, description) => {
+      apiNotification.error({
+        message,
+        description,
+        icon: <WarningOutlined style={{ color: '#fa0707ff' }} />,
+        duration: 2,
+      });
+    },
+    [apiNotification]
+  );
 
   // local state
   const [fullName, setFullName] = useState('');
@@ -42,11 +47,11 @@ const BookingPage = () => {
   // reducer state
   const { trip: tripFromState } = location.state || {};
   const { seatsByTrip, tripsByRoute } = useSelector((state) => state.trips);
-
+  const { bookingCreated, success: bookingSuccess, message: bookingMessage } = useSelector((state) => state.bookings);
   const trip =
     tripFromState || tripsByRoute?.find((t) => t.id === parseInt(tripId));
-  console.log('Trip from state:', tripFromState);
-  console.log('Trip:', trip);
+  // console.log('Trip from state:', tripFromState);
+  // console.log('Trip:', trip);
   
   const [selectedSeatIds, setSelectedSeatIds] = useState([]);
   const handleToggleSeat = useCallback((seat) => { 
@@ -88,7 +93,7 @@ const BookingPage = () => {
     setTotalPrice(selectedSeatIds?.length * trip.base_price || 0);
   }, [selectedSeatIds, trip]);
 
-  const handleBookingInfo = () => {
+  const handleBookingInfo = async () => {
     if (selectedSeatIds.length === 0) {
       openErrorNotification(
         'Chưa chọn ghế',
@@ -131,7 +136,31 @@ const BookingPage = () => {
       total_price: parseInt(totalPrice),
     };
     console.log('Booking info:', bookingInfo);
-    alert('Thong tin dat ve: ' + JSON.stringify(bookingInfo, null, 2));
+    await dispatch(createBookingAction(bookingInfo));
+    if (!bookingSuccess) {
+      openErrorNotification(
+        'Đặt vé thất bại',
+        bookingMessage || 'Có lỗi xảy ra khi đặt vé. Vui lòng thử lại sau.'
+      );
+
+      return;
+    } 
+    
+    apiNotification.success({
+      message: 'Đặt vé thành công',
+      description: `Bạn đã đặt vé thành công. Mã vé của bạn là: ${bookingCreated}.\n ${JSON.stringify(bookingCreated, null, 2)}`,
+      duration: 5,
+    });
+    console.log('Dispatched booking action', bookingCreated);
+
+    apiNotification.info({
+      message: 'Chuyển đến trang thanh toán',
+      description: 'Bạn sẽ được chuyển đến trang thanh toán trong giây lát.',
+      duration: 3,
+    });
+
+    navigate(`/payments?bookingCode=${bookingCreated.booking_code}&email=${email}&tripId=${trip.id}`, { state: { booking: bookingCreated, trip } });
+    // alert('Thong tin dat ve: ' + JSON.stringify(bookingInfo, null, 2));
   };
 
   if (!trip) {
@@ -142,9 +171,9 @@ const BookingPage = () => {
     );
   }
 
-  console.log('Seats by trip:', seatsByTrip);
-  console.log('Selected seat IDs:', selectedSeatIds);
-  console.log('Selected trip:', trip);
+  // console.log('Seats by trip:', seatsByTrip);
+  // console.log('Selected seat IDs:', selectedSeatIds);
+  // console.log('Selected trip:', trip);
 
   return (
     <>
@@ -165,9 +194,7 @@ const BookingPage = () => {
               padding: '16px',
             }}
           >
-            <Grid item size={12}>
-              So do xe cho trip {tripId} (Tong so ghe:{' '}
-              {trip?.bus?.total_seats || '...'})
+            <Grid item size={12}> 
               <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
                 Sơ đồ ghế
               </Typography>
@@ -225,8 +252,9 @@ const BookingPage = () => {
                 seatCount={selectedSeatIds?.length || 0}
                 seatNumbers={selectedSeatIds}
                 dropoffPoint={trip?.dropoff_point || '...'}
+                basePrice={trip?.base_price || 0}
                 fare={totalPrice || 0}
-                paymentFee={trip?.payment_fee || 0}
+                paymentFee={trip?.payment_fee || 0} 
               />
             </Grid>
           </Grid>
@@ -245,7 +273,7 @@ const BookingPage = () => {
               sx={{ marginLeft: '8px' }}
               onClick={handleBookingInfo}
             >
-              Thanh toán
+              Đặt vé
             </Button>
           </Grid>
         </Grid>

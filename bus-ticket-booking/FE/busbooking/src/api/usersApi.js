@@ -1,5 +1,7 @@
 // auth.ts
-import api from '../api/api.js';
+import axios from 'axios';
+import api, { TOKEN_KEYS } from '../api/api.js';
+import { API_DOMAIN } from '../constants/index.js';
 
 const login = async (username, password) => {
   const body = new URLSearchParams();
@@ -15,7 +17,10 @@ const login = async (username, password) => {
 };
 
 const getMe = async () => {
-  const response = await api.get('/users/auth/me');
+  
+  const response = await axios.get(API_DOMAIN + '/users/auth/me', {
+    headers: { 'Authorization': `Bearer ${localStorage.getItem(TOKEN_KEYS.BUS_ACCESS_TOKEN)}` }
+  });
   return {
     responseApi: response.data,
   };

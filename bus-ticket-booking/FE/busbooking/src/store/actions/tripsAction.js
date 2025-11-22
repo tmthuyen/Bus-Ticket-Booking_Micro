@@ -1,12 +1,16 @@
 import { parseAxiosError } from "../../api/api";
 import { getRoutes, getTripsByOriginAndDestinationAndFromDate
-  , getSeatsByTripId
+  , getSeatsByTripId,
+  getTripById
  } from "../../api/tripsApi";
 
 const TRIPS_ACTION_TYPES = {
   FETCH_ROUTES_REQUEST: "FETCH_ROUTES_REQUEST",
   FETCH_ROUTES_SUCCESS: "FETCH_ROUTES_SUCCESS",
   FETCH_ROUTES_FAILURE: "FETCH_ROUTES_FAILURE",
+  FETCH_TRIP_BY_ID_REQUEST: "FETCH_TRIP_BY_ID_REQUEST",
+  FETCH_TRIP_BY_ID_SUCCESS: "FETCH_TRIP_BY_ID_SUCCESS",
+  FETCH_TRIP_BY_ID_FAILURE: "FETCH_TRIP_BY_ID_FAILURE",
   FETCH_TRIPS_BY_ROUTE_REQUEST: "FETCH_TRIPS_BY_ROUTE_REQUEST",
   FETCH_TRIPS_BY_ROUTE_SUCCESS: "FETCH_TRIPS_BY_ROUTE_SUCCESS",
   FETCH_TRIPS_BY_ROUTE_FAILURE: "FETCH_TRIPS_BY_ROUTE_FAILURE",
@@ -40,6 +44,30 @@ const fetchRoutes = () => {
     }
   }
 };
+
+const fetchTripById = (trip_id) => {
+  return async (dispatch) => {
+    dispatch({ type: TRIPS_ACTION_TYPES.FETCH_TRIP_BY_ID_REQUEST });
+    try {
+      const { responseApi } = await getTripById(trip_id);
+      console.log("Fetch Trip By ID responseApi: ", responseApi);
+      dispatch({
+        type: TRIPS_ACTION_TYPES.FETCH_TRIP_BY_ID_SUCCESS,
+        payload: { data: responseApi.data, message: "Lấy thông tin chuyến xe thành công" }
+      });
+    } catch (error) {
+      console.error("fetchTripById error: ", error);
+      const parsedError = parseAxiosError(error);
+      dispatch({
+        type: TRIPS_ACTION_TYPES.FETCH_TRIP_BY_ID_FAILURE,
+        payload: {
+          error: parsedError.message || "Lấy thông tin chuyến xe thất bại",
+          message: parsedError.message || "Lấy thông tin chuyến xe thất bại"
+        }
+      });
+    }
+  };
+}
 
 const fetchTripsByRoute = (origin_code, destination_code, from_date) => {
   return async (dispatch) => {
@@ -91,6 +119,7 @@ const fetchSeatsByTrip = (trip_id) => {
 
 export {
   fetchRoutes,
+  fetchTripById,
   fetchTripsByRoute,
   fetchSeatsByTrip,
 };

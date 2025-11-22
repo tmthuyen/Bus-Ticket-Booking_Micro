@@ -2,6 +2,7 @@ const { TRIPS_ACTION_TYPES: tripsAction } = require("../actions/tripsAction");
 
 const intitState = {
   routes: [],
+  tripById: null,
   tripsByRoute: [], // trips and route info 
   seatsByTrip: [], // seats and trip info
   loading: false,
@@ -28,6 +29,26 @@ const tripsReducer = (state = intitState, action) => {
         ...state,
         routes: [],
         loading: false,
+        error: action.payload.error,
+        message: action.payload.message,
+      };
+    case tripsAction.FETCH_TRIP_BY_ID_REQUEST:
+      return {
+        ...state,
+        loading: true,
+      };
+    case tripsAction.FETCH_TRIP_BY_ID_SUCCESS:
+      return {
+        ...state,
+        loading: false, 
+        tripById: action.payload.data,
+        message: action.payload.message,
+      };
+    case tripsAction.FETCH_TRIP_BY_ID_FAILURE:
+      return {
+        ...state,
+        loading: false,
+        tripById: null,
         error: action.payload.error,
         message: action.payload.message,
       };
