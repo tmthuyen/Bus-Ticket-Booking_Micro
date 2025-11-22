@@ -29,6 +29,13 @@ def get_bookings_by_email(db: Session, email: str, skip: int = 0, limit: int = 1
         .limit(limit)\
         .all()
 
+def get_bookings_by_email_and_code(db: Session, email: str, booking_code: str) -> models.Booking:
+    """Lấy booking theo email và booking_code"""
+    return db.query(models.Booking)\
+        .options(joinedload(models.Booking.seat_assignments))\
+        .filter(models.Booking.email == email, models.Booking.booking_code == booking_code)\
+        .first()
+
 def get_bookings_by_trip(db: Session, trip_id: int, skip: int = 0, limit: int = 100):
     """Lấy danh sách booking theo trip_id"""
     return db.query(models.Booking)\

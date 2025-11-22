@@ -1,27 +1,75 @@
 import enum
-from sqlalchemy import CHAR, Column, Integer, String, Text, Enum, DateTime
-from datetime import datetime, timedelta, timezone
-from .database import Base 
+import datetime as dt
+import uuid
+from typing import Optional
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+from sqlalchemy.dialects.mysql import CHAR
+from .database import Base
 
-VIETNAM_TZ = timezone(timedelta(hours=7))
+# Enum cho trạng thái OTP
+class OTPStatus(enum.Enum):
+    PENDING = "pending"      # Chờ sử dụng
+    USED = "used"            # Đã sử dụng
+    EXPIRED = "expired"      # Hết hạn
 
+# Enum cho loại OTP
+class OTPType(enum.Enum):
+    BOOKING = "booking"      # Xác thực khi đặt vé (khách vãng lai)
+    REFUND = "refund"        # Xác thực khi hoàn tiền
+    UPDATE = "update"        # Xác thực khi cập nhật thông tin
 
-
-class PurposeType(enum.Enum):
-    PAYMENT = "PAYMENT"
-    LOGIN = "LOGIN"
-    PASSWORD_RESET = "PASSWORD_RESET"
+# Bảng otps: Lưu mã OTP để xác thực
+class OTP(Base):
+    __tablename__ = "otps"
     
-    
-class Notification(Base):
-    __tablename__ = 'otps'
-
-    id = Column(Integer, primary_key=True, index=True) # khoi tao khoa chinh tu dong tang 
-    username = Column(String(10),unique=False)  # ten dang nhap nguoi dung  
-    payment_id = Column(CHAR(36), nullable=False) # ma giao dich lien ket voi OTP
-    purpose = Column(Enum(PurposeType), nullable=True, default=PurposeType.PAYMENT) # muc dich thong bao
-    code = Column(String(6), nullable=False) # ma thong bao (OTP)
-    created_at = Column(DateTime, default=datetime.now(VIETNAM_TZ)) # thoi gian tao thong bao
-    expires_at = Column(DateTime(timezone=True), nullable=False) # thoi gian het han thong bao
-    used_at = Column(DateTime, nullable=True) # thoi gian su dung thong bao
-    status = Column(Enum('unused', 'used', 'expired', name='status_enum'), default='unused') # trang thai thong bao: chua su dung, da su dung, het han
+    id: Mapped[str] = mapped_column(
+        CHAR(36), 
+        primary_key=True, 
+        default=lambda: str(uuid.uuid4()),
+        index=True
+    )
+    user_id: Mapped[Optional[str]] = mapped_column(
+        CHAR(36),
+        nullable=True,
+        index=True
+    )
+    email: Mapped[str] = mapped_column(
+        sa.String(255),
+        nullable=False,
+        index=True
+    )
+    otp: Mapped[str] = mapped_column(
+        sa.String(10),
+        nullable=False
+    )
+    expiry_time: Mapped[dt.datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=False
+    )
+    status: Mapped[OTPStatus] = mapped_column(
+        sa.Enum(OTPStatus, name="otp_status", native_enum=False),
+        nullable=False,
+        server_default=OTPStatus.PENDING.value,
+    )
+    created_at: Mapped[dt.datetime] = mapped_column(
+        sa.DateTime(timezone=True),
+        default=dt.datetime.utcnow,
+        server_default=func.now(),
+        nullable=False,
+    )
+    attempts: Mapped[int] = mapped_column(
+        sa.Integer,
+        nullable=False,
+        server_default="0"
+    )
+    type: Mapped[OTPType] = mapped_column(
+        sa.Enum(OTPType, name="otp_type", native_enum=False),
+        nullable=False
+    )
+    booking_id: Mapped[Optional[str]] = mapped_column(
+        CHAR(36),
+        nullable=True,
+        index=True
+    )

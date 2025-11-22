@@ -310,7 +310,7 @@ def get_booked_seats_by_trip(
         }
     )
 
-@app.get("/customer/{customer_email}/bookings", tags=["bookings"])
+@app.get("/customer/{customer_email}", tags=["bookings"])
 def get_bookings_by_customer_email(
     customer_email: str,
     skip: int = 0,
@@ -343,4 +343,26 @@ def get_bookings_by_customer_email(
     return response.successResponse(
         msg="Lấy danh sách booking thành công",
         data=bookings_data
+    )
+#Lấy danh sách booking theo email và booking code
+@app.get("/search/{customer_email}/{booking_code}", tags=["bookings"])
+def search_booking_by_email_and_code(
+    customer_email: str,
+    booking_code: str,
+    db: Session = Depends(get_db)
+):
+    """Tìm kiếm booking theo email và booking code"""
+    db_booking = repository.get_bookings_by_email_and_code(db, customer_email, booking_code)
+    
+    if not db_booking:
+        return response.errorResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            msg="Không tìm thấy booking với thông tin cung cấp"
+        )
+    
+    booking_response = schemas.BookingResponse.model_validate(db_booking)
+    
+    return response.successResponse(
+        msg="Lấy thông tin booking thành công",
+        data=booking_response.model_dump(mode='json')
     )
