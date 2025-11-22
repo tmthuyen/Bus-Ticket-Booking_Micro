@@ -42,4 +42,4 @@ def errorResponse(status_code=400, headers={"Content-type": "application/json"},
                                 "data": None,
                                 "errors": errors
                             }
-                    )
+                    ) 
