@@ -12,8 +12,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import './Login.scss';
-import { useState } from 'react';
-import { getMe, login } from '../../../api/usersApi';
+import { useState } from 'react'; 
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProfile, loginUser } from '../../../store/actions/usersAction';
 
@@ -27,8 +26,7 @@ function Login() {
   const {
     user,
     token,
-    loading: loadingUser,
-    error,
+    loading: loadingUser, 
     message: messageUser,
   } = useSelector((state) => state.users);
 
@@ -50,12 +48,12 @@ function Login() {
 
       console.log('Login successful:', token);
 
-      dispatch(fetchProfile());
+      await dispatch(fetchProfile());
       console.log('Fetched profile:', user);
 
       api.success({
         message: messageUser || 'Đăng nhập thành công' ,
-        description: `Chào mừng ${user.full_name} đến với hệ thống đặt vé xe buýt!`,
+        description: `Chào mừng ${user?.full_name} đến với hệ thống đặt vé xe buýt!`,
       });
 
       setTimeout(() => {

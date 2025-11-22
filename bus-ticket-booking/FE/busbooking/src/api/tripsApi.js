@@ -10,6 +10,14 @@ export const getRoutes = async () => {
   }; // tuỳ backend trả data gì
 };
 
+export const getTripById = async (trip_id) => {
+  trip_id = parseInt(trip_id);
+  const res = await api.get(`${PREFIX_SERVICE}/trips/${trip_id}`);
+  return {
+    responseApi: res.data
+  };
+};
+
 // GET /trips/routes?origin_code=&destination_code=&from_date=
 export const getTripsByOriginAndDestinationAndFromDate = async (origin_code, destination_code, from_date) => {
   const res = await api.get(`${PREFIX_SERVICE}/trips-by-route`, {

@@ -87,6 +87,21 @@ def get_trips(
         data=jsonable_encoder(trips)
     )
 
+# trips/{trip_id}
+@app.get("/trips/{trip_id}", response_model=successResponse, tags=["trips"])
+def get_trip_by_id(
+    trip_id: int,  
+    db: Session = Depends(get_db)):
+    """Lấy thông tin chuyến đi theo ID."""
+    if not trip_id:
+        return errorResponse(msg="Thiếu trip_id.")
+    
+    trip = repository.get_trip_by_id(db=db, trip_id=trip_id)
+    if not trip:
+        return errorResponse(msg="Trip not found.", status_code=404)
+    
+    return successResponse(msg="Trip retrieved successfully", data=jsonable_encoder(trip))
+
 @app.put("/trips/{trip_id}", response_model=successResponse, tags=["trips"])
 def update_trip(
     trip_id: int, 

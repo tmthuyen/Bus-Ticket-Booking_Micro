@@ -1,4 +1,4 @@
-import { parseAxiosError } from "../../api/api";
+import { parseAxiosError, TOKEN_KEYS } from "../../api/api";
 import { getMe, login } from "../../api/usersApi";
 
 const USERS_ACTION_TYPES = {
@@ -25,7 +25,7 @@ const loginUser = (username, password) => {
     try {
       const { responseApi } = await login(username, password);
       // console.log("Login responseApi: ", responseApi);  
-      localStorage.setItem('access_token', responseApi.data.access_token);
+      localStorage.setItem(TOKEN_KEYS.BUS_ACCESS_TOKEN, responseApi.data.access_token);
       dispatch({ 
         type: USERS_ACTION_TYPES.FETCH_LOGIN_SUCCESS, 
         payload: { data: responseApi.data.access_token, message: "Đăng nhập thành công" } 

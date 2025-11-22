@@ -14,15 +14,14 @@ import {
   Container,
   Divider,
 } from '@mui/material';
-import { Home, Menu as MenuIcon } from '@mui/icons-material';
+import { Menu as MenuIcon } from '@mui/icons-material';
 import { Link } from 'react-router-dom'; 
 import './CustomerHeader.css';
 
 const pages = [
   { name: 'Home', path: '/' },
   { name: 'Routes', path: '/routes' },
-  { name: 'Lookup ticket', path: '/lookup-ticket' },
-  { name: 'Bookings', path: '/bookings' },
+  { name: 'Lookup ticket', path: '/lookup-ticket' }, 
   { name: 'Contact', path: '/contact' },
 ];
 const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
@@ -160,7 +159,13 @@ function CustomerHeader({ user = null }) {
                   </div>
                 ) : (
                   <div>
-                    <Box sx={{ flexGrow: 0 }}>
+                    <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center' }}>
+                      <Typography
+                        variant="body1"
+                        sx={{ display: 'inline', marginRight: '10px' }}
+                      >
+                        {user?.full_name}
+                      </Typography>
                       <Tooltip title="Open settings">
                         <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                           <Avatar
@@ -214,17 +219,17 @@ function CustomerHeader({ user = null }) {
                     display: { xs: 'none', md: 'flex' },
                     justifyContent: 'center',
                     alignItems: 'center',
-                  }}
+                  }}  
                 >
                   {pages.map((page) => (
                     <Button
                       key={page.name}
                       component={Link}
                       to={page.path}
-                      sx={{ my: 2, color: 'black', display: 'block' }}
+                      sx={{ my: 2, mx: 3, color: 'black', display: 'block' }}
                       className="link"
                     >
-                      {page.name}
+                      <Typography style={{width: '100%'}}  fontWeight={600}>{page.name}</Typography>
                     </Button>
                   ))}
                 </Box>

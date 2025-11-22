@@ -9,6 +9,7 @@ import TripPage from '../components/pages/Trip/TripPage';
 import RoutePage from '../components/pages/Route';
 import LookupTicketPage from '../components/pages/Ticket/LookupTicketPage';
 import BookingPage from '../components/pages/Booking/BookingPage';
+import PaymentPage from '../components/pages/Payment/PaymentPage';
 
 export const routes = [
   {
@@ -47,6 +48,10 @@ export const routes = [
       {
         path: 'bookings/:tripId',
         element: <BookingPage />,
+      },
+      {
+        path: 'payments',
+        element: <PaymentPage />,
       },
       {
         path: 'lookup-ticket',

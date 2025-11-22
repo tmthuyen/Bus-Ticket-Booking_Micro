@@ -83,6 +83,41 @@ def update_trip(db: Session, trip_id: int, trip_data: schemas.Trip):
     db.refresh(trip)
     return trip
 
+def get_trip_by_id(db: Session, trip_id: int):
+    """Lấy thông tin chuyến đi theo ID."""
+    base = (
+        db.query(models.Trip, models.Route)
+        .join(models.Route, models.Trip.route_id == models.Route.id)
+        .filter(models.Trip.id == trip_id)
+    )
+    
+    row = base.first()
+    if not row:
+        return None
+    trip, route = row
+    trip_data = {
+        "id": trip.id,
+        "route_id": trip.route_id,
+        "bus_id": trip.bus_id,
+        "departure_time": trip.departure_time.isoformat(), # trả về thời gian UTC iso format
+        "arrival_time": trip.arrival_time.isoformat(),
+        "created_at": trip.created_at.isoformat(),
+        "updated_at": trip.updated_at.isoformat(),
+        "status": trip.status,
+        "route": {
+            "id": route.id,
+            "origin": route.origin,
+            "origin_code": route.origin_code,
+            "destination": route.destination,
+            "destination_code": route.destination_code,
+            "base_price": route.base_price,
+            "distance_km": route.distance_km,
+            "estimated_duration": route.estimated_duration,
+        }, 
+        "bus": trip.bus,
+    }
+    return trip_data
+
 # ========= SEATS =========    
 def get_seat_layout_by_trip_id(db: Session, trip_id: int):
     """Lấy sơ đồ chỗ ngồi cho chuyến đi dựa trên trip_id."""

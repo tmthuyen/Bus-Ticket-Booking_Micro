@@ -11,7 +11,7 @@ import {
   Divider,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { formatVN, formatVNDate } from '../../../utils/formatTime';
+import { formatVNDate } from '../../../utils/formatTime';
 
 // Helper format số tiền
 const formatCurrency = (value) =>
@@ -20,12 +20,13 @@ const formatCurrency = (value) =>
   );
 
 const BookingSummary = ({
-  title = 'Thông tin lượt đi',
+  title = 'Thông tin chuyến đi',
   routeLabel, // "Bạc Liêu - Miền Tây"
   departureTimeLabel, // "06:00 26/11/2025"
   seatCount = 0, // số lượng ghế
   seatNumbers = [], // array ["A01", "A02"]
-  fare = 0, // giá vé lượt đi
+  basePrice = 0, // giá vé cơ bản
+  fare = 0, // giá vé đi
   paymentFee = 0, // phí thanh toán
 }) => {
   const [openPriceDetail, setOpenPriceDetail] = useState(true);
@@ -59,6 +60,11 @@ const BookingSummary = ({
             </TableRow>
 
             <TableRow>
+              <TableCell sx={{ fontWeight: 600 }}>Giá vé</TableCell>
+              <TableCell align="right">{formatCurrency(basePrice)}</TableCell>
+            </TableRow>
+
+            <TableRow>
               <TableCell sx={{ fontWeight: 600 }}>Số lượng ghế</TableCell>
               <TableCell align="right">{seatCount} ghế</TableCell>
             </TableRow>
@@ -71,7 +77,7 @@ const BookingSummary = ({
             </TableRow>
 
             <TableRow>
-              <TableCell sx={{ fontWeight: 600 }}>Tổng tiền lượt đi</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Tổng tiền</TableCell>
               <TableCell align="right" sx={{ fontWeight: 600, color: 'primary.main' }}>
                 {formatCurrency(total)}
               </TableCell>
@@ -111,7 +117,7 @@ const BookingSummary = ({
           <TableBody>
             <TableRow>
               <TableCell sx={{ borderBottom: 'none' }}>
-                Giá vé lượt đi
+                Giá vé
               </TableCell>
               <TableCell
                 align="right"
