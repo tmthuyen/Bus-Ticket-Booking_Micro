@@ -61,11 +61,13 @@ const PaymentReturn = () => {
         if (resultCode === 0) {
           // Handle successful payment
           console.log(`Payment successful for booking ID: ${booking_id}`);
-          navigate(`/booking-success?bookingId=${booking_id}&paymentId=${orderId}`);
+          navigate(`/booking-result?bookingId=${booking_id}&paymentId=${orderId}&status=success`);
 
         } else if (resultCode === 1002) {
           // Handle failed payment
           console.log(`Payment failed with resultCode: ${resultCode}`);
+          
+          navigate(`/booking-result?bookingId=${booking_id}&paymentId=${orderId}&status=failed`);
         }
       } catch (error) {
         console.error('Error in MOMO callback:', error);

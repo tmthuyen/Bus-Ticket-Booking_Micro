@@ -83,7 +83,7 @@ const PaymentPage = () => {
           '&tripId=' +
           bookingInfo?.trip_id;
 
-        const ipnUrl = `${API_DOMAIN}/momo-callback`;
+        const ipnUrl = `${redirectUrl}`;
 
         const payloadPayment = {
           booking_id: bookingInfo?.id,
@@ -122,7 +122,7 @@ const PaymentPage = () => {
           //   `Bạn sẽ được chuyển đến cổng thanh toán MOMO trong giây lát...`
           // );
           window.location.href = data?.payment_url;
-        }, 3000);
+        }, 1500);
       } catch (error) {
 
         console.error('Error creating MOMO payment:', parseAxiosError(error));

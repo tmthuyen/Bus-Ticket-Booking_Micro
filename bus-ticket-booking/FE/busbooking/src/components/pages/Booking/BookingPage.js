@@ -48,6 +48,7 @@ const BookingPage = () => {
   const [email, setEmail] = useState('');
   const [isReadPolicy, setIsReadPolicy] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [loadingBooking, setLoadingBooking] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [otp, setOtp] = useState('');
   const [bookingResult, setBookingResult] = useState(null);
@@ -95,7 +96,7 @@ const BookingPage = () => {
   );
 
   useEffect(() => {
-    if (tripId && seatsByTrip.length === 0) {
+    if (tripId && seatsByTrip?.length === 0) {
       dispatch(fetchSeatsByTrip(parseInt(tripId)));
     }
   }, [tripId, seatsByTrip, dispatch]);
@@ -166,11 +167,14 @@ const BookingPage = () => {
     }
   };
   const handleBookingInfo = async () => {
+    setLoadingBooking(true);
+
     if (selectedSeatIds.length === 0) {
       openErrorNotification(
         'Chưa chọn ghế',
         'Vui lòng chọn ghế trước khi đặt vé.'
       );
+      setLoadingBooking(false);
       return;
     }
     if (!fullName || !email || !phone) {
@@ -178,6 +182,7 @@ const BookingPage = () => {
         'Thiếu thông tin khách hàng',
         'Vui lòng điền đầy đủ thông tin khách hàng trước khi đặt vé.'
       );
+      setLoadingBooking(false);
       return;
     }
 
@@ -194,6 +199,7 @@ const BookingPage = () => {
         'Chưa đồng ý chính sách',
         'Vui lòng đồng ý với các điều khoản và chính sách đặt vé trước khi đặt vé.'
       );
+      setLoadingBooking(false);
       return;
     }
 
@@ -220,11 +226,13 @@ const BookingPage = () => {
       );
       console.error('Booking failed:', bookingResult);
 
+      setLoadingBooking(false);
       return;
     }
 
     // tao booking giu cho thanh cong
     // show modal xac nhan otp
+    setLoadingBooking(false);
     setIsModalOpen(true);
     // alert('Thong tin dat ve: ' + JSON.stringify(bookingInfo, null, 2));
   };
@@ -272,9 +280,9 @@ const BookingPage = () => {
                 Sơ đồ ghế
               </Typography>
               <SeatMap
-                total_seats={seatsByTrip.total_seats || 0}
-                total_booked={seatsByTrip.total_booked || 0}
-                seats={seatsByTrip.seat_layout || []}
+                total_seats={seatsByTrip?.total_seats || 0}
+                total_booked={seatsByTrip?.total_booked || 0}
+                seats={seatsByTrip?.seat_layout || []}
                 selectedSeatIds={selectedSeatIds}
                 onToggleSeat={handleToggleSeat}
               />
@@ -348,6 +356,7 @@ const BookingPage = () => {
               color="primary"
               sx={{ marginLeft: '8px' }}
               onClick={handleBookingInfo}
+              loading={loadingBooking}
             >
               Đặt vé
             </Button>
