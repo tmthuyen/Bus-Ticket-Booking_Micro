@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -16,7 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import BookingSummary from '../Booking/BookingSummary';
-import { PAYMENT_METHOD } from '../../../constants';
+import { API_DOMAIN, PAYMENT_METHOD } from '../../../constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { fetchBookingByCodeAction } from '../../../store/actions/bookingsAction';
@@ -82,7 +82,7 @@ const PaymentPage = () => {
           '&tripId=' +
           bookingInfo?.trip_id;
 
-        const ipnUrl = 'http://localhost:8000/payments/payments/momo/callback2';
+        const ipnUrl = `${API_DOMAIN}/healthz`;
 
         const payloadPayment = {
           booking_id: bookingInfo?.id,

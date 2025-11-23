@@ -136,22 +136,24 @@ const BookingPage = () => {
       total_price: parseInt(totalPrice),
     };
     console.log('Booking info:', bookingInfo);
-    await dispatch(createBookingAction(bookingInfo));
-    if (!bookingSuccess) {
+    const bookingResult = await dispatch(createBookingAction(bookingInfo));
+    console.log('Booking result:', bookingResult);
+
+    if (!bookingResult || bookingResult.success === false) {
       openErrorNotification(
         'Đặt vé thất bại',
-        bookingMessage || 'Có lỗi xảy ra khi đặt vé. Vui lòng thử lại sau.'
+        bookingResult.message || 'Có lỗi xảy ra khi đặt vé. Vui lòng thử lại sau.'
       );
+      console.error('Booking failed:', bookingResult);
 
       return;
     } 
     
     apiNotification.success({
       message: 'Đặt vé thành công',
-      description: `Bạn đã đặt vé thành công. Mã vé của bạn là: ${bookingCreated}.\n ${JSON.stringify(bookingCreated, null, 2)}`,
+      description: `Giữ vé thành công. Mã vé của bạn là: ${bookingResult.data.booking_code}.\n ${JSON.stringify(bookingResult.data, null, 2)}`,
       duration: 5,
     });
-    console.log('Dispatched booking action', bookingCreated);
 
     apiNotification.info({
       message: 'Chuyển đến trang thanh toán',
@@ -159,7 +161,10 @@ const BookingPage = () => {
       duration: 3,
     });
 
-    navigate(`/payments?bookingCode=${bookingCreated.booking_code}&email=${email}&tripId=${trip.id}`, { state: { booking: bookingCreated, trip } });
+    setTimeout(() => {
+      navigate(`/payments?bookingCode=${bookingResult.data.booking_code}&email=${email}&tripId=${trip.id}`, { state: { booking: bookingResult.data, trip } });
+    }, 3000);
+
     // alert('Thong tin dat ve: ' + JSON.stringify(bookingInfo, null, 2));
   };
 

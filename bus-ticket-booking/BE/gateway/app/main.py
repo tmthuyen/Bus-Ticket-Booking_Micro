@@ -33,7 +33,11 @@ app.add_middleware(
 @app.get("/healthz")
 @limiter.limit("10/minute")
 def health(request: Request):
+    
+    print(f"Health check from: {request.client.host}")
+    print("MOMO PAYMENT")
     return {"status": "ok"}
+
 
 # Wildcard: mọi request đi qua đây
 # Ví dụ giới hạn: 100 request / phút / IP

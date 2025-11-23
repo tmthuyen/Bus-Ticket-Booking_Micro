@@ -130,3 +130,19 @@ def get_seats_by_trip_id(
     return successResponse(msg="Seats retrieved successfully", data=seats)
 
  
+@app.get("/payment-test/callback", tags=["payment-test"])
+def payment_callback(partnerCode: str, orderId: str, amount: float, orderInfo: str, orderType: str, transId: int, resultCode: int, message: str, payType: int, responseTime: str, extraData: str, signature: str):
+    """Endpoint test callback từ payment service. Cho momo, vnpay,..."""
+    print("Callback received:")
+    print(f"partnerCode: {partnerCode}")
+    print(f"orderId: {orderId}")
+    print(f"amount: {amount}")
+    print(f"orderInfo: {orderInfo}")
+    print(f"orderType: {orderType}")
+    print(f"transId: {transId}")
+    return {
+        "partnerCode": partnerCode,
+        "orderId": orderId,
+        "errorCode": errorCode
+    }
+    

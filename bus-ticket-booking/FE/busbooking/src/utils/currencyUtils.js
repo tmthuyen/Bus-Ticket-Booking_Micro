@@ -8,4 +8,5 @@ const formatCurrency = (value) =>
 const currencyUtils = {
   formatCurrency,
 }
+
 export default currencyUtils;

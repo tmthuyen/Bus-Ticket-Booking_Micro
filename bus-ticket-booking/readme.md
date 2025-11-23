@@ -67,7 +67,7 @@ docker compose up -d user_db
 
 
 
-http://localhost:3000/payment-success?status=success
+http://localhost:3000/payment-return? 
 &bookingCode=BK2311256191
 &email=tranthuyen2222@gmail.com
 &tripId=1
