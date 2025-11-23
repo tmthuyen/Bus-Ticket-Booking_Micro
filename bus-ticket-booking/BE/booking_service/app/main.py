@@ -10,12 +10,22 @@ from .database import engine, get_db
 from .config import settings  
 from fastapi.middleware.cors import CORSMiddleware
 from . import rabbitmq_producer
+from . import scheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 models.Base.metadata.create_all(bind=engine)
- 
+# Khởi tạo Background Scheduler
+bg_scheduler = BackgroundScheduler()
+bg_scheduler.add_job(
+    scheduler.auto_cancel_expired_bookings,
+    'interval',
+    minutes=1,  # Chạy mỗi phút
+    id='auto_cancel_expired_bookings',
+    replace_existing=True
+)
 
 tags_metadata = [
     {
@@ -47,7 +57,7 @@ producer = None
 
 @app.on_event("startup")
 def startup_event():
-    """Initialize RabbitMQ producer on startup"""
+    """Initialize RabbitMQ producer and background scheduler on startup"""
     global producer
     
     rabbitmq_config = {
@@ -63,6 +73,10 @@ def startup_event():
         logger.info("RabbitMQ Producer initialized successfully")
     else:
         logger.warning("RabbitMQ Producer failed to initialize - falling back to HTTP notifications")
+    
+    # Start background scheduler for auto-cancel expired bookings
+    bg_scheduler.start()
+    logger.info("Background Scheduler started - Auto-cancel expired bookings every 1 minute")
 
 
 @app.on_event("shutdown")
@@ -71,6 +85,11 @@ def shutdown_event():
     global producer
     if producer:
         producer.close()
+    
+    # Shutdown background scheduler
+    bg_scheduler.shutdown()
+    logger.info("Background Scheduler stopped")
+    
     logger.info("Booking Service shutdown complete")
 
 
@@ -80,7 +99,7 @@ def health_check():
     return {"status": "Booking Service is healthy"}
 
 @app.post("/", tags=["bookings"], status_code=status.HTTP_201_CREATED)
-def create_booking(
+async def create_booking(
     booking_data: schemas.BookingCreate,
     db: Session = Depends(get_db)
 ):
@@ -90,6 +109,7 @@ def create_booking(
     - Kiểm tra các ghế còn trống
     - Tạo booking với trạng thái PENDING
     - Tạo seat_assignments cho từng ghế
+    - Xác thực email sau khi tạo booking
     """
     # Validate dữ liệu
     is_valid, msg = utils.is_valid_booking_data(
@@ -135,16 +155,30 @@ def create_booking(
         booking_code=booking_code
     )
     
+    # Gửi OTP xác thực
+    try:
+        success, otp_response = await helpers_api.send_otp(
+            email=db_booking.email,
+            booking_code=db_booking.booking_code
+        )
+        if success:
+            logger.info(f"OTP sent successfully to {db_booking.email} for booking {db_booking.booking_code}")
+        else:
+            logger.error(f"Failed to send OTP for booking {db_booking.booking_code}: {otp_response}")
+    except Exception as e:
+        logger.error(f"Exception occurred while sending OTP: {e}")
+    
     return response.successResponse(
         status_code=status.HTTP_201_CREATED,
-        msg="Đặt vé thành công, vui lòng thanh toán trong 15 phút",
+        msg="Đặt vé thành công. OTP đã được gửi đến email của bạn. Vui lòng xác thực và thanh toán trong vòng 1 giờ",
         data={
             "booking_id": db_booking.id,
             "booking_code": db_booking.booking_code,
             "status": db_booking.status.value,
             "seat_quantity": db_booking.seat_quantity,
             "seat_numbers": booking_data.seat_numbers,
-            "total_price": float(db_booking.total_price)
+            "total_price": float(db_booking.total_price),
+            "hold_until": db_booking.hold_until.isoformat() if db_booking.hold_until else None
         }
     )
 
@@ -328,10 +362,6 @@ def cancel_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             msg=f"Booking đã ở trạng thái {db_booking.status.value}"
         )
-    
-    # Kiểm tra chính sách hủy vé (ví dụ: trước 24h)
-    # Giả sử booking_time là thời gian chuyến đi (cần lấy từ Trip Service)
-    # Tạm thời cho phép hủy
     
     # Hủy booking
     updated_booking = repository.cancel_booking(db, booking_id)
