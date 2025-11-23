@@ -3,7 +3,7 @@ from sqlalchemy import desc, and_, or_
 from typing import Optional, List
 from decimal import Decimal
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from . import models
 from .models import Payment, PaymentLog, PaymentStatus, PaymentMethod, PaymentEventType
@@ -301,3 +301,28 @@ def get_pending_payments_older_than(db: Session, minutes: int = 15) -> List[Paym
             Payment.created_at < cutoff_time
         )
     ).all()
+
+def get_pending_payment_by_booking(db: Session, booking_id: str):
+    """Get the latest pending payment for a booking"""
+    return db.query(models.Payment).filter(
+        models.Payment.booking_id == booking_id,
+        models.Payment.status == PaymentStatus.PENDING
+    ).order_by(desc(models.Payment.created_at)).first()
+
+def expire_old_pending_payments(db: Session, booking_id: str):
+    """Mark old pending payments as expired"""
+    try:
+        expired_count = db.query(models.Payment).filter(
+            models.Payment.booking_id == booking_id,
+            models.Payment.status == PaymentStatus.PENDING,
+            models.Payment.created_at < datetime.utcnow() - timedelta(minutes=15)
+        ).update({
+            models.Payment.status: PaymentStatus.EXPIRED,
+            models.Payment.updated_at: datetime.utcnow()
+        })
+        
+        db.commit()
+        return expired_count
+    except Exception as e:
+        db.rollback()
+        raise e

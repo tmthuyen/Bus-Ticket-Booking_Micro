@@ -222,43 +222,86 @@ async def momo_callback(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    """Nhận callback từ MoMo"""
+    """Nhận callback từ MoMo - Handle both success and failed transactions"""
     try:
         # Convert Pydantic model to dict
         callback_dict = callback_data.dict()
+        
+        logger.info(f"📥 Received MoMo callback for orderId: {callback_data.orderId}")
+        logger.info(f"📋 MoMo resultCode: {callback_data.resultCode}")
         
         success, message, processed_data = await payment_service.handle_momo_callback(
             db, callback_dict
         )
         
+        # ✅ FIX: Handle different scenarios
+        
         if not success:
-            logger.warning(f"MoMo callback processing failed: {message}")
-            return errorResponse(status_code=400, msg=message)
+            # Case 1: Processing error (signature invalid, payment not found, etc.)
+            logger.warning(f"❌ MoMo callback processing failed: {message}")
+            return JSONResponse(
+                status_code=200,  # Always 200 for MoMo
+                content={
+                    "partnerCode": callback_data.partnerCode,
+                    "orderId": callback_data.orderId,
+                    "requestId": callback_data.requestId,
+                    "resultCode": 1,  # 1 = processing failed
+                    "message": "processing error",
+                    "responseTime": int(datetime.utcnow().timestamp() * 1000)
+                }
+            )
         
-        # MoMo yêu cầu response format cụ thể
-        return JSONResponse(
-            status_code=200,
-            content={
-                "partnerCode": callback_data.partnerCode,
-                "orderId": callback_data.orderId,
-                "requestId": callback_data.requestId,
-                "resultCode": 0,  # 0 = success
-                "message": "success",
-                "responseTime": int(datetime.utcnow().timestamp() * 1000)
-            }
-        )
+        # Case 2: Processing success - check actual payment result
+        payment_status = processed_data.get("status", "").lower()
         
+        if payment_status == "success":
+            # ✅ Payment successful
+            logger.info(f"✅ Payment {processed_data.get('payment_id')} completed successfully")
+            
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "payment_id": processed_data.get("payment_id"),
+                    "booking_id": processed_data.get("booking_id"),
+                    "partnerCode": callback_data.partnerCode,
+                    "orderId": callback_data.orderId,
+                    "requestId": callback_data.requestId,
+                    "resultCode": 0,  # 0 = success
+                    "message": "success",
+                    "responseTime": int(datetime.utcnow().timestamp() * 1000)
+                }
+            )
+            
+        else:
+            # ❌ Payment failed 
+            logger.warning(f"❌ Payment {processed_data.get('payment_id')} failed with status: {payment_status}")
+            
+            return JSONResponse(
+                status_code=200,  # Always 200 for MoMo
+                content={
+                    "payment_id": processed_data.get("payment_id"),
+                    "booking_id": processed_data.get("booking_id"),
+                    "partnerCode": callback_data.partnerCode,
+                    "orderId": callback_data.orderId,
+                    "requestId": callback_data.requestId,
+                    "resultCode": 1,  # 1 = payment failed
+                    "message": f"payment failed: {message}",
+                    "responseTime": int(datetime.utcnow().timestamp() * 1000)
+                }
+            )
+            
     except Exception as e:
-        logger.error(f"Error handling MoMo callback: {str(e)}")
-        # Vẫn trả success cho MoMo để tránh retry
+        logger.error(f"💥 Unexpected error handling MoMo callback: {str(e)}")
+        
+        # Return processing error to MoMo
         return JSONResponse(
             status_code=200,
             content={
                 "partnerCode": callback_data.partnerCode,
                 "orderId": callback_data.orderId,
                 "requestId": callback_data.requestId,
-                "resultCode": 1,  # 1 = failed
-                "message": "processing error",
+                "resultCode": 1,  # 1 = system error
+                "message": "system error",
                 "responseTime": int(datetime.utcnow().timestamp() * 1000)
             }
         )

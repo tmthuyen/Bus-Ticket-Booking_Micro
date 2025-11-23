@@ -27,6 +27,7 @@ class PaymentStatus(enum.Enum):
     PENDING = "pending"
     SUCCESS = "success" 
     FAILED = "failed"
+    EXPIRED = "expired"
 
 class PaymentMethod(enum.Enum):
     VNPAY = "VNPAY"

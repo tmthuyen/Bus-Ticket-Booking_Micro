@@ -19,6 +19,7 @@ class PaymentService:
     
     def __init__(self):
         self.momo_service = MoMoService()
+        self.payment_expiry_minutes = 15;  # Thời gian hết hạn payment
     
     async def create_payment(
         self, 
@@ -94,6 +95,17 @@ class PaymentService:
             Tuple (success, message, response_data)
         """
         try:
+            existing_payment = self._get_valid_pending_payment(db, str(payment_request.booking_id)) # Kiểm tra payment pending hợp lệ
+            if existing_payment:
+                logger.info(f"Found existing pending payment for booking {payment_request.booking_id}")
+                return self._return_existing_payment(existing_payment)
+            
+            expired_count = repository.expire_old_pending_payments(db, str(payment_request.booking_id)) # Expire các payment pending cũ
+            if expired_count > 0:
+                logger.info(f"Expired {expired_count} old pending payments for booking {payment_request.booking_id}")
+                
+            logger.info(f"Creating new MoMo payment for booking {payment_request.booking_id}")
+
             # Tạo payment record trước
             payment_create = PaymentCreate(
                 booking_id=payment_request.booking_id,
@@ -410,3 +422,106 @@ class PaymentService:
         except Exception as e:
             logger.error(f"❌ Error notifying Booking Service for booking {booking_id}: {str(e)}")
             # Không raise exception để không ảnh hưởng đến payment flow
+
+
+    def _get_valid_pending_payment(self, db: Session, booking_id: str) -> Optional[Payment]:
+        """Lấy pending payment hợp lệ (chưa expire)"""
+        pending_payment = repository.get_pending_payment_by_booking(db, booking_id)
+        
+        if not pending_payment:
+            return None
+            
+        if self._is_payment_expired(pending_payment):
+            logger.info(f"⏰ Payment {pending_payment.id} has expired")
+            return None
+            
+        return pending_payment
+
+    def _is_payment_expired(self, payment: Payment) -> bool:
+        """Kiểm tra payment đã expire chưa"""
+        if not payment.created_at:
+            return True
+            
+        from datetime import timedelta
+        expiry_time = payment.created_at + timedelta(minutes=self.payment_expiry_minutes)
+        return datetime.utcnow() > expiry_time
+
+    def _return_existing_payment(self, payment: Payment) -> Tuple[bool, str, Dict[str, Any]]:
+        """Trả về thông tin payment existing"""
+        try:
+            from datetime import timedelta
+            import json
+            
+            # Tính thời gian còn lại
+            expiry_time = payment.created_at + timedelta(minutes=self.payment_expiry_minutes)
+            time_remaining = int((expiry_time - datetime.utcnow()).total_seconds())
+            
+            # Parse raw_response để lấy URLs
+            payment_url = ""
+            qr_code_url = ""
+            
+            if payment.raw_response:
+                try:
+                    parsed = json.loads(payment.raw_response)
+                    logger.info(f"🔍 DEBUG: Full raw_response structure: {json.dumps(parsed, indent=2)}")
+                    
+                    # ✅ FIX: Check multiple locations for URLs
+                    
+                    # Location 1: Direct fields (from momo_service response)
+                    payment_url = parsed.get('payment_url', '')
+                    qr_code_url = parsed.get('qr_code_url', '')
+                    
+                    # Location 2: In nested raw_response (from MoMo API)
+                    if not payment_url and 'raw_response' in parsed:
+                        inner_response = parsed['raw_response']
+                        if isinstance(inner_response, dict):
+                            payment_url = inner_response.get('payUrl', '')
+                            qr_code_url = inner_response.get('qrCodeUrl', '')
+                    
+                    # Location 3: Direct MoMo fields (fallback)
+                    if not payment_url:
+                        payment_url = parsed.get('payUrl', '')
+                        qr_code_url = parsed.get('qrCodeUrl', '')
+                        
+                    logger.info(f"🔍 Extracted URLs: payment_url='{payment_url}', qr_code_url='{qr_code_url}'")
+                    
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse raw_response: {str(e)}")
+            
+            # ✅ FALLBACK: Check payment_info column
+            if not payment_url and payment.payment_info:
+                try:
+                    payment_info = json.loads(payment.payment_info)
+                    logger.info(f"🔍 DEBUG: payment_info structure: {json.dumps(payment_info, indent=2)}")
+                    
+                    payment_url = payment_info.get('payUrl', '')
+                    qr_code_url = payment_info.get('qrCodeUrl', '')
+                    
+                    logger.info(f"🔍 From payment_info: payment_url='{payment_url}', qr_code_url='{qr_code_url}'")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse payment_info: {str(e)}")
+            
+            # ✅ VALIDATION: Ensure URLs are valid
+            if not payment_url or not payment_url.startswith('http'):
+                logger.warning(f"⚠️ Invalid payment_url found: '{payment_url}'")
+                payment_url = f"https://test-payment.momo.vn/v2/gateway/pay?orderId={payment.provider_transaction_id}"
+            
+            response_data = {
+                "payment_id": payment.id,
+                "order_id": payment.provider_transaction_id,
+                "payment_url": payment_url,
+                "qr_code_url": qr_code_url,
+                "is_existing": True,
+                "expires_at": expiry_time.isoformat() + "Z",
+                "time_remaining_seconds": max(0, time_remaining),
+                "amount": str(payment.amount),
+                "message": "Tiếp tục thanh toán hiện có"
+            }
+            
+            logger.info(f"✅ Returning existing payment with URLs: payment_url='{payment_url[:50]}...', qr_code_url='{qr_code_url[:50] if qr_code_url else ''}'")
+            
+            return True, "Payment continued successfully", response_data
+            
+        except Exception as e:
+            logger.error(f"Error returning existing payment: {str(e)}")
+            return False, "Lỗi trả về payment existing", None
