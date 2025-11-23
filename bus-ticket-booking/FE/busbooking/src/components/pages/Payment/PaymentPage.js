@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -21,6 +21,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { fetchBookingByCodeAction } from '../../../store/actions/bookingsAction';
 import { fetchTripById } from '../../../store/actions/tripsAction';
+import api from '../../../api/api';
 
 const PaymentPage = () => {
   // hooks
@@ -41,49 +42,76 @@ const PaymentPage = () => {
   const email = searchParams.get('email');
   const tripId = searchParams.get('tripId');
 
-  // get trip info 
+  // get trip info
 
   const { booking: bookingFromState } = location.state || {};
 
   // 🔹 Chỉ fetch từ API nếu KHÔNG có bookingFromState & chưa có bookingFromStore
   useEffect(() => {
-    if (bookingCode && !bookingFromStore) {
+    if (bookingCode) {
       dispatch(fetchBookingByCodeAction(bookingCode));
     }
-  }, [bookingCode, bookingFromState, bookingFromStore, dispatch]);
+  }, [bookingCode, dispatch]);
 
   useEffect(() => {
     dispatch(fetchTripById(tripId));
   }, [tripId, dispatch]);
 
-  const bookingInfo = bookingFromStore;
+  const [bookingInfo, setBookingInfo] = useState(bookingFromState || bookingFromStore);
+
+  useEffect(() => {
+    setBookingInfo(bookingFromStore);
+  }, [bookingFromStore]);
   // console.log('Booking info:', bookingInfo);
   // prepare props for BookingSummary
   const [bookingSummaryProps, setBookingSummaryProps] = useState({});
 
-  const handleSubmitPayment = () => {
-    const redirectUrl = 'http://localhost:3000/payment-success?status=success&bookingCode=' + bookingInfo?.booking_code + '&email=' + bookingInfo?.email + '&tripId=' + bookingInfo?.trip_id;
-    const payloadPayment = {
-      booking_id: bookingInfo?.booking_id,
-      amount: bookingInfo?.total_price,
-      order_info: `Payment for booking code: ${bookingInfo?.booking_code}`,
-      payment_method: method,
-      customer_name: bookingInfo?.full_name,
-      customer_phone: bookingInfo?.phone,
-      customer_email: bookingInfo?.email,
-      redirect_url: redirectUrl,
-      ipn_url: redirectUrl,
+  const handleSubmitPayment = async () => {
+    console.log('Submitting payment with method:', bookingInfo, method);
 
-    }
-
-    console.log('Payment payload:', payloadPayment);
     if (method === PAYMENT_METHOD.MOMO) {
       alert('Redirecting to MOMO payment gateway...');
-      
+
+      try {
+        const redirectUrl =
+          'http://localhost:3000/payment-return?' +
+          '&bookingCode=' +
+          bookingInfo?.booking_code +
+          '&email=' +
+          bookingInfo?.email +
+          '&tripId=' +
+          bookingInfo?.trip_id;
+
+        const ipnUrl = 'http://localhost:8000/payments/payments/momo/callback2';
+
+        const payloadPayment = {
+          booking_id: bookingInfo?.id,
+          amount: bookingInfo?.total_price,
+          order_info: `Payment for booking code: ${bookingInfo?.booking_code}`,
+          payment_method: 'credit',
+          customer_name: bookingInfo?.full_name,
+          customer_phone: bookingInfo?.phone,
+          customer_email: bookingInfo?.email,
+          redirect_url: redirectUrl,
+          ipn_url: ipnUrl,
+        };
+
+        console.log('Payment payload MOMO:', payloadPayment);
+
+        const resp = await api.post(
+          '/payments/payments/momo/create',
+          payloadPayment
+        );
+        console.log('MOMO payment response:', resp.data);
+      } catch (error) {
+        console.error('Error creating MOMO payment:', error);
+      }
     } else if (method === PAYMENT_METHOD.VNPAY) {
       alert('Redirecting to VNPAY payment gateway...');
+    } else {
+      alert('Please select a valid payment method.');
     }
-  }
+  };
 
   useEffect(() => {
     setBookingSummaryProps({
@@ -145,7 +173,12 @@ const PaymentPage = () => {
             >
               <PaymentChooseMethod method={method} setMethod={setMethod} />
 
-              <Button variant="contained" sx={{ mt: 2 }} fullWidth onClick={handleSubmitPayment}>
+              <Button
+                variant="contained"
+                sx={{ mt: 2 }}
+                fullWidth
+                onClick={handleSubmitPayment}
+              >
                 Thanh toán ngay
               </Button>
             </Box>

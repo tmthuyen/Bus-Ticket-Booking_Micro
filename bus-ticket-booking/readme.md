@@ -65,3 +65,26 @@ docker compose down user_db
 docker volume rm bus-ticket-booking_user_db_data
 docker compose up -d user_db
 
+
+
+http://localhost:3000/payment-success?status=success
+&bookingCode=BK2311256191
+&email=tranthuyen2222@gmail.com
+&tripId=1
+&partnerCode=MOMO
+&orderId=BOOK209015b7202511230425236B53ADFB
+&requestId=b230dc58-4892-4ffa-b747-d8b3e5861eb5
+&amount=850000
+&orderInfo=Thanh+to%C3%A1n+v%C3%A9+xe
+&orderType=momo_wallet
+&transId=4614096933
+&resultCode=1002
+&message=Successful.
+&payType=napas
+&responseTime=1763872191084
+&extraData=
+&signature=31549feb0d74c73d730284e5311edb26a78b7a0974eee3e6ed15e5a3df58d834
+
+Lấy result từ link
+- Thành công: booking ? payment?
+- Thất bại: 
