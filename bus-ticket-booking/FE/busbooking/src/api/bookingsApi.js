@@ -48,7 +48,7 @@ export const getBookingByCodeApi = async (booking_code) => {
   const res = await api.get(
     `${PREFIX_SERVICE}/code/${booking_code}`
   );
-  // console.log("getBookingByCode: ", res.data);
+  console.log("getBookingByCode: ", res.data);
   return {
     responseApi: res.data,
   }; // tuỳ backend trả data gì

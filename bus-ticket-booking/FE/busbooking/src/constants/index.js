@@ -4,6 +4,29 @@ const PAYMENT_METHOD = {
     MOMO: 'MOMO',
     VNPAY: 'VNPAY',
     CASH: 'CASH',
+} 
+
+export const BOOKING_STATUS = {
+    PENDING: {
+        label: 'Đang chờ xử lý',
+        color: 'orange',
+        value: 'PENDING'
+    },
+    PAID: {
+        label: 'Đã thanh toán',
+        color: 'green',
+        value: 'PAID'
+    }, 
+    CANCELLED: {
+        label: 'Đã hủy',
+        color: 'red',
+        value: 'CANCELLED'
+    },
+    REFUNDED: {
+        label: 'Đã hoàn tiền',
+        color: 'blue',
+        value: 'REFUNDED'
+    },
 }
 // console.log("API_DOMAIN", API_DOMAIN);
 export {

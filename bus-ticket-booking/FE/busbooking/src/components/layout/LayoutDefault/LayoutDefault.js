@@ -1,8 +1,8 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import './LayoutDefault.css'; 
 import CustomerHeader from '../../partials/CustomerHeader';
 import { useDispatch, useSelector } from 'react-redux';
-import { use, useEffect } from 'react';
+import { useEffect } from 'react';
 import { fetchRoutes } from '../../../store/actions/tripsAction';
 import { fetchProfile } from '../../../store/actions/usersAction';
  

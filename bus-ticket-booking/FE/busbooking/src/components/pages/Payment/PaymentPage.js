@@ -1,6 +1,7 @@
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
+  Button,
   Container,
   FormControl,
   FormControlLabel,
@@ -46,7 +47,7 @@ const PaymentPage = () => {
 
   // 🔹 Chỉ fetch từ API nếu KHÔNG có bookingFromState & chưa có bookingFromStore
   useEffect(() => {
-    if (!bookingFromState && bookingCode && !bookingFromStore) {
+    if (bookingCode && !bookingFromStore) {
       dispatch(fetchBookingByCodeAction(bookingCode));
     }
   }, [bookingCode, bookingFromState, bookingFromStore, dispatch]);
@@ -55,9 +56,34 @@ const PaymentPage = () => {
     dispatch(fetchTripById(tripId));
   }, [tripId, dispatch]);
 
-  const bookingInfo = bookingFromState || bookingFromStore;
+  const bookingInfo = bookingFromStore;
+  // console.log('Booking info:', bookingInfo);
   // prepare props for BookingSummary
   const [bookingSummaryProps, setBookingSummaryProps] = useState({});
+
+  const handleSubmitPayment = () => {
+    const redirectUrl = 'http://localhost:3000/payment-success?status=success&bookingCode=' + bookingInfo?.booking_code + '&email=' + bookingInfo?.email + '&tripId=' + bookingInfo?.trip_id;
+    const payloadPayment = {
+      booking_id: bookingInfo?.booking_id,
+      amount: bookingInfo?.total_price,
+      order_info: `Payment for booking code: ${bookingInfo?.booking_code}`,
+      payment_method: method,
+      customer_name: bookingInfo?.full_name,
+      customer_phone: bookingInfo?.phone,
+      customer_email: bookingInfo?.email,
+      redirect_url: redirectUrl,
+      ipn_url: redirectUrl,
+
+    }
+
+    console.log('Payment payload:', payloadPayment);
+    if (method === PAYMENT_METHOD.MOMO) {
+      alert('Redirecting to MOMO payment gateway...');
+      
+    } else if (method === PAYMENT_METHOD.VNPAY) {
+      alert('Redirecting to VNPAY payment gateway...');
+    }
+  }
 
   useEffect(() => {
     setBookingSummaryProps({
@@ -113,9 +139,15 @@ const PaymentPage = () => {
                 boxShadow: 'var(--box-shadow)',
                 // minHeight: '100vh',
                 padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               <PaymentChooseMethod method={method} setMethod={setMethod} />
+
+              <Button variant="contained" sx={{ mt: 2 }} fullWidth onClick={handleSubmitPayment}>
+                Thanh toán ngay
+              </Button>
             </Box>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>

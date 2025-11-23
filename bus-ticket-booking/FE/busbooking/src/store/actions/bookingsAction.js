@@ -93,6 +93,7 @@ export const fetchTicketByCodeAndEmailAction = (code, email) => {
         type: BOOKINGS_ACTION_TYPES.FETCH_TICKET_BY_CODE_AND_EMAIL_SUCCESS, 
         payload: { data: responseApi.data, message: "Tra cứu vé thành công" }, 
       }); 
+      return responseApi.data;
     } catch (error) {
       console.error("fetchTicketByCodeAndEmailAction error: ", error); 
       const parsedError = parseAxiosError(error);

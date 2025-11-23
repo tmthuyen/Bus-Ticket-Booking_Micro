@@ -52,6 +52,8 @@ class BookingResponse(BaseModel):
     # Danh sách ghế đã đặt
     seat_assignments: Optional[List[SeatAssignmentResponse]] = None
     
+    trip: Optional[dict] = None
+    
     model_config = ConfigDict(from_attributes=True)
 
 class BookingListResponse(BaseModel):
