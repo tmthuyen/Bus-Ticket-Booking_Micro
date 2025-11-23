@@ -85,20 +85,10 @@ def send_otp(
     db: Session = Depends(get_db)
 ):
     """
-    Gửi mã OTP 6 chữ số qua email
+    Gửi mã OTP 6 chữ số qua email để xác thực booking
     """
-    # Validate loại OTP
-    valid_types = ["booking", "refund", "update"]
-    if otp_request.type not in valid_types:
-        return response.errorResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            msg=f"Loại OTP không hợp lệ. Chỉ chấp nhận: {', '.join(valid_types)}"
-        )
-    
-    otp_type_enum = models.OTPType[otp_request.type.upper()]
-    
-    # Kiểm tra OTP gần nhất (rate limiting)
-    latest_otp = repository.get_latest_otp(db, otp_request.email, otp_type_enum)
+    # Kiểm tra OTP gần nhất (rate limiting - 60 giây)
+    latest_otp = repository.get_latest_otp(db, otp_request.email)
     if latest_otp and latest_otp.status == models.OTPStatus.PENDING:
         time_diff = (utils.get_current_datetime() - latest_otp.created_at).total_seconds()
         if time_diff < 60:  # Chờ ít nhất 60 giây
@@ -107,31 +97,32 @@ def send_otp(
                 msg=f"Vui lòng đợi {60 - int(time_diff)} giây trước khi yêu cầu OTP mới"
             )
     
-    # Tạo mã OTP
+    # Tạo mã OTP 6 chữ số
     otp_code = utils.generate_otp_code(length=6)
     expiry_minutes = 5
     
     # Lưu OTP vào database
     db_otp = repository.create_otp(
         db=db,
-        user_id=otp_request.user_id,
         email=otp_request.email,
+        booking_code=otp_request.booking_code,
         otp_code=otp_code,
-        otp_type=otp_type_enum,
-        expiry_minutes=expiry_minutes,
-        booking_id=otp_request.booking_id
+        expiry_minutes=expiry_minutes
     )
     
-    # Gửi OTP qua email (background task)
-    def send_otp_task():
+    # Gửi OTP qua email ngay lập tức (synchronous)
+    # OTP cần gửi nhanh để user nhận được ngay
+    try:
         utils.send_otp_email(
             receiver_email=otp_request.email,
             otp_code=otp_code,
-            otp_type=otp_request.type,
+            booking_code=otp_request.booking_code,
             expiry_minutes=expiry_minutes
         )
-    
-    background_tasks.add_task(send_otp_task)
+        logger.info(f"OTP sent successfully to {otp_request.email} for booking {otp_request.booking_code}")
+    except Exception as e:
+        logger.error(f"Failed to send OTP email: {e}")
+        # OTP đã lưu DB, có thể retry sau hoặc user request lại
     
     return response.successResponse(
         status_code=status.HTTP_201_CREATED,
@@ -139,6 +130,7 @@ def send_otp(
         data={
             "otp_id": db_otp.id,
             "email": db_otp.email,
+            "booking_code": db_otp.booking_code,
             "expiry_time": db_otp.expiry_time.isoformat(),
             "expires_in_minutes": expiry_minutes
         }
@@ -152,7 +144,7 @@ def verify_otp(
     """
     Xác thực mã OTP
     """
-    # Validate format OTP
+    # Validate format OTP (6 chữ số)
     is_valid, error_msg = utils.validate_otp_format(otp_verify.otp)
     if not is_valid:
         return response.errorResponse(
@@ -160,25 +152,15 @@ def verify_otp(
             msg=error_msg
         )
     
-    # Validate loại OTP
-    valid_types = ["booking", "refund", "update"]
-    if otp_verify.type not in valid_types:
-        return response.errorResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            msg=f"Loại OTP không hợp lệ"
-        )
-    
-    otp_type_enum = models.OTPType[otp_verify.type.upper()]
-    
     # Expire các OTP cũ trước
     repository.expire_old_otps(db)
     
     # Tìm OTP hợp lệ
-    db_otp = repository.get_valid_otp(db, otp_verify.email, otp_verify.otp, otp_type_enum)
+    db_otp = repository.get_valid_otp(db, otp_verify.email, otp_verify.otp)
     
     if not db_otp:
         # Kiểm tra xem có OTP nào cho email này không
-        latest_otp = repository.get_latest_otp(db, otp_verify.email, otp_type_enum)
+        latest_otp = repository.get_latest_otp(db, otp_verify.email)
         
         if not latest_otp:
             return response.errorResponse(
@@ -223,8 +205,7 @@ def verify_otp(
         data={
             "otp_id": db_otp.id,
             "email": db_otp.email,
-            "type": db_otp.type.value,
-            "booking_id": db_otp.booking_id,
+            "booking_code": db_otp.booking_code,
             "verified": True
         }
     )
@@ -244,7 +225,7 @@ def get_otps_by_email(
         otps_data.append({
             "id": otp.id,
             "email": otp.email,
-            "type": otp.type.value,
+            "booking_code": otp.booking_code,
             "status": otp.status.value,
             "attempts": otp.attempts,
             "expiry_time": otp.expiry_time.isoformat(),

@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_
 from . import models, schemas, utils
 import datetime
+from datetime import datetime as dt, timedelta
 from typing import List
 
 
@@ -69,7 +70,10 @@ def create_booking(
     Tạo booking mới với nhiều ghế (giữ chỗ tạm thời)
     Tạo booking và seat_assignments tương ứng
     """
-    # Tạo booking
+    # Tạo booking với thời gian giữ chỗ 1 tiếng
+    current_time = dt.utcnow()
+    hold_until = current_time + timedelta(hours=1)
+    
     db_booking = models.Booking(
         trip_id=trip_id,
         booking_code=booking_code,
@@ -79,8 +83,9 @@ def create_booking(
         status=models.BookingStatus.PENDING,
         seat_quantity=len(seat_numbers),
         total_price=total_price,
-        created_at=datetime.datetime.utcnow(),
-        updated_at=datetime.datetime.utcnow()
+        hold_until=hold_until,
+        created_at=current_time,
+        updated_at=current_time
     )
     db.add(db_booking)
     db.flush()  # Lấy booking.id mà chưa commit

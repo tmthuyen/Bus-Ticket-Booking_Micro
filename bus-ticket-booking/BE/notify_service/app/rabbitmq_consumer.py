@@ -252,13 +252,16 @@ def handle_booking_refund(data: dict, db: Session) -> bool:
 
 
 def handle_otp_message(data: dict, db: Session) -> bool:
-    """Handle OTP generation and sending"""
+    """Handle OTP generation and sending - Email verification for booking"""
     try:
-        logger.info(f"Sending OTP to {data.get('email')}")
+        email = data.get('email')
+        booking_code = data.get('booking_code')
+        logger.info(f"Sending OTP to {email} for booking {booking_code}")
+        
         utils.send_otp_email(
-            receiver_email=data.get('email'),
+            receiver_email=email,
             otp_code=data.get('otp_code'),
-            otp_type=data.get('otp_type'),
+            booking_code=booking_code,
             expiry_minutes=data.get('expiry_minutes', 5)
         )
         return True

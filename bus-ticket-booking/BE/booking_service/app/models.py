@@ -54,6 +54,13 @@ class Booking(Base):
         nullable=False
     )
     
+    # Thời gian giữ chỗ tạm thời (1 tiếng từ lúc tạo booking)
+    hold_until: Mapped[Optional[dt.datetime]] = mapped_column(
+        sa.DateTime(timezone=True),
+        nullable=True,
+        comment="Thời gian hết hạn giữ chỗ tạm thời"
+    )
+    
     created_at: Mapped[dt.datetime] = mapped_column(
         sa.DateTime(timezone=True),
         default=dt.datetime.utcnow,

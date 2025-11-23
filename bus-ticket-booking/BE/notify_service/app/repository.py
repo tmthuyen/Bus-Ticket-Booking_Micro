@@ -6,24 +6,20 @@ import datetime
 
 def create_otp(
     db: Session,
-    user_id: str | None,
     email: str,
+    booking_code: str,
     otp_code: str,
-    otp_type: models.OTPType,
-    expiry_minutes: int,
-    booking_id: str | None = None
+    expiry_minutes: int
 ) -> models.OTP:
-    """Tạo OTP mới"""
+    """Tạo OTP mới cho xác thực email"""
     expiry_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=expiry_minutes)
     
     db_otp = models.OTP(
-        user_id=user_id,
         email=email,
+        booking_code=booking_code,
         otp=otp_code,
         expiry_time=expiry_time,
         status=models.OTPStatus.PENDING,
-        type=otp_type,
-        booking_id=booking_id,
         attempts=0,
         created_at=datetime.datetime.utcnow()
     )
@@ -36,7 +32,7 @@ def get_otp_by_id(db: Session, otp_id: str) -> models.OTP:
     """Lấy OTP theo ID"""
     return db.query(models.OTP).filter(models.OTP.id == otp_id).first()
 
-def get_valid_otp(db: Session, email: str, otp_code: str, otp_type: models.OTPType) -> models.OTP:
+def get_valid_otp(db: Session, email: str, otp_code: str) -> models.OTP:
     """
     Lấy OTP hợp lệ (pending, chưa hết hạn) theo email và mã OTP
     """
@@ -46,7 +42,6 @@ def get_valid_otp(db: Session, email: str, otp_code: str, otp_type: models.OTPTy
             and_(
                 models.OTP.email == email,
                 models.OTP.otp == otp_code,
-                models.OTP.type == otp_type,
                 models.OTP.status == models.OTPStatus.PENDING,
                 models.OTP.expiry_time > current_time
             )
@@ -54,15 +49,10 @@ def get_valid_otp(db: Session, email: str, otp_code: str, otp_type: models.OTPTy
         .order_by(models.OTP.created_at.desc())\
         .first()
 
-def get_latest_otp(db: Session, email: str, otp_type: models.OTPType) -> models.OTP:
-    """Lấy OTP mới nhất theo email và type"""
+def get_latest_otp(db: Session, email: str) -> models.OTP:
+    """Lấy OTP mới nhất theo email"""
     return db.query(models.OTP)\
-        .filter(
-            and_(
-                models.OTP.email == email,
-                models.OTP.type == otp_type
-            )
-        )\
+        .filter(models.OTP.email == email)\
         .order_by(models.OTP.created_at.desc())\
         .first()
 
@@ -132,9 +122,9 @@ def get_otps_by_email(db: Session, email: str, skip: int = 0, limit: int = 50):
         .limit(limit)\
         .all()
 
-def get_otps_by_booking(db: Session, booking_id: str):
-    """Lấy danh sách OTP theo booking_id"""
+def get_otps_by_booking_code(db: Session, booking_code: str):
+    """Lấy danh sách OTP theo booking_code"""
     return db.query(models.OTP)\
-        .filter(models.OTP.booking_id == booking_id)\
+        .filter(models.OTP.booking_code == booking_code)\
         .order_by(models.OTP.created_at.desc())\
         .all()

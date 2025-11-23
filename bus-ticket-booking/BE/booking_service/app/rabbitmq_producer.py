@@ -146,17 +146,17 @@ class RabbitMQProducer:
         self,
         email: str,
         otp_code: str,
-        otp_type: str,
+        booking_code: str,
         expiry_minutes: int = 5
     ) -> bool:
-        """Publish OTP generation event"""
+        """Publish OTP generation event for email verification"""
         message = {
             'email': email,
             'otp_code': otp_code,
-            'otp_type': otp_type,
+            'booking_code': booking_code,
             'expiry_minutes': expiry_minutes
         }
-        return self.publish_message('otp_queue', message, priority=9)
+        return self.publish_message('otp_queue', message)
 
     def close(self):
         """Close connection"""
