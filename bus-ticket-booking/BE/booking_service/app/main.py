@@ -207,7 +207,7 @@ async def get_booking_by_id(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             msg=str(e)
         )
-    
+     
     return response.successResponse(
         msg="Lấy thông tin booking thành công",
         data=booking_response.model_dump(mode='json')

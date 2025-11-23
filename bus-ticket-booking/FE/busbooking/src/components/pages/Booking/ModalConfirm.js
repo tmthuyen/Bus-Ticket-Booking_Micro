@@ -1,31 +1,8 @@
+import { Box, Grid } from '@mui/material';
 import { Input, Modal } from 'antd';
 // import { useState } from 'react';
 
 const ModalConfirm = ({ isModalOpen, setIsModalOpen, onSubmit, otp, setOtp }) => {
-  // OTP là string, ví dụ: "123456"
-  // const [otp, setOtp] = useState("");
-
-  const handleOk = () => {
-    // call API confirm otp với otp string
-    // console.log("Confirm OTP:", otp);
-
-    // if (otp.length < 6) {
-    //   return;
-    // }
-
-    // const OTP = otp;
-    // console.log("Submitting OTP:", OTP);
-
-    // // TODO: gọi API xác thực OTP
-    // // nếu thành công:
-    // //   - đóng modal
-    // //   - redirect sang trang thanh toán
-    // // nếu thất bại:
-    // //   - show message lỗi (antd message / Modal.error)
-
-    // setIsModalOpen(false);
-    // setOtp("");
-  };
 
   const handleCancel = () => {
     setIsModalOpen(false);
@@ -61,8 +38,9 @@ const ModalConfirm = ({ isModalOpen, setIsModalOpen, onSubmit, otp, setOtp }) =>
       // closable chỉ cần boolean thôi
       closable
     >
-      <div style={{ width: '100%' }}>
-        <Input.OTP
+      <Grid container justify="center" align="middle">
+        <Box sx={{ width: '100%'}}>
+          <Input.OTP
           length={6}             // 6 số OTP
           value={otp}            // controlled string
           formatter={str => str.replace(/\D/g, "")}
@@ -74,7 +52,8 @@ const ModalConfirm = ({ isModalOpen, setIsModalOpen, onSubmit, otp, setOtp }) =>
           // separator={<span style={{ margin: "0 4px" }}>-</span>}
           className="otp-input-custom"
         />
-      </div>
+        </Box>
+      </Grid>
     </Modal>
   );
 };

@@ -19,6 +19,8 @@ import { WarningOutlined } from '@ant-design/icons';
 import { createBookingAction } from '../../../store/actions/bookingsAction';
 import ModalConfirm from './ModalConfirm';
 import { verifyOtp } from '../../../api/notificationApi';
+import { parseAxiosError } from '../../../api/api';
+import { validateOtp } from '../../../utils/otpUtil';
 
 const BookingPage = () => {
   // hooks
@@ -48,16 +50,13 @@ const BookingPage = () => {
   const [totalPrice, setTotalPrice] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [otp, setOtp] = useState('');
+  const [bookingResult, setBookingResult] = useState(null);
   // const [otp, setOtp] = useState([]);
 
   // reducer state
   const { trip: tripFromState } = location.state || {};
   const { seatsByTrip, tripsByRoute } = useSelector((state) => state.trips);
-  const {
-    bookingCreated,
-    success: bookingSuccess,
-    message: bookingMessage,
-  } = useSelector((state) => state.bookings);
+
   const trip =
     tripFromState || tripsByRoute?.find((t) => t.id === parseInt(tripId));
   // console.log('Trip from state:', tripFromState);
@@ -106,8 +105,65 @@ const BookingPage = () => {
     setTotalPrice(selectedSeatIds?.length * trip.base_price || 0);
   }, [selectedSeatIds, trip]);
 
-  const onShowModal = () => {
-    setIsModalOpen(true);
+  const onSubmitOtp = async () => {
+    // đặt vé thành công:
+    // const emailOtp = bookingResult.data?.email;
+    const validateOtpResult = validateOtp(otp.trim());
+    if (!validateOtpResult.isValid) {
+      openErrorNotification('Lỗi mã OTP', validateOtpResult.message);
+      return;
+    }
+
+    try {
+      const payloadOtp = {
+        email: email,
+        otp: otp,
+      }
+      const { responseApi } = await verifyOtp(payloadOtp);
+
+      console.log('OTP verify response:', responseApi);
+      const isVerified = responseApi.success;
+
+      if (isVerified) {
+        apiNotification.success({
+          message: 'Đặt vé thành công',
+          description: `Giữ vé thành công. Mã vé của bạn là: ${
+            bookingResult.data.booking_code
+          }.\n ${JSON.stringify(bookingResult.data, null, 2)}`,
+          duration: 5,
+        });
+
+        apiNotification.info({
+          message: 'Chuyển đến trang thanh toán',
+          description:
+            'Bạn sẽ được chuyển đến trang thanh toán trong giây lát.',
+          duration: 3,
+        });
+
+        setTimeout(() => {
+          navigate(
+            `/payments?bookingCode=${bookingResult.data.booking_code}&email=${email}&tripId=${trip.id}`,
+            { state: { booking: bookingResult.data, trip } }
+          );
+        }, 3000);
+      } else {
+        openErrorNotification(
+          'Xác thực OTP thất bại',
+          'Mã OTP không hợp lệ. Vui lòng thử lại.'
+        );
+      }
+    } catch (error) {
+      console.error('OTP verify error:', error);
+      const parsedError = parseAxiosError(error);
+      openErrorNotification(
+        'Xác thực OTP thất bại',
+        'Có lỗi xảy ra khi xác thực OTP. Vui lòng thử lại. ' +
+          (parsedError.message || '')
+      );
+    } finally {
+      setIsModalOpen(false);
+      setOtp('');
+    }
   };
   const handleBookingInfo = async () => {
     if (selectedSeatIds.length === 0) {
@@ -151,8 +207,9 @@ const BookingPage = () => {
       seat_count: selectedSeatIds.length,
       total_price: parseInt(totalPrice),
     };
-    console.log('Booking info:', bookingInfo);
+    // console.log('Booking info:', bookingInfo);
     const bookingResult = await dispatch(createBookingAction(bookingInfo));
+    setBookingResult(bookingResult);
     console.log('Booking result:', bookingResult);
 
     if (!bookingResult || bookingResult.success === false) {
@@ -166,59 +223,9 @@ const BookingPage = () => {
       return;
     }
 
-    // đặt vé thành công:
-    const bookingCode = bookingResult.data?.booking_code;
-    const emailOtp = bookingResult.data?.email;
-
+    // tao booking giu cho thanh cong
     // show modal xac nhan otp
     setIsModalOpen(true);
-    let isVerified = false;
-
-    try {
-      const { responseApi } = await verifyOtp({ email: emailOtp, code: otp });
-      console.log('OTP verify response:', responseApi);
-
-      isVerified = responseApi?.success;
-
-      if (isVerified) {
-        apiNotification.success({
-          message: 'Đặt vé thành công',
-          description: `Giữ vé thành công. Mã vé của bạn là: ${
-            bookingResult.data.booking_code
-          }.\n ${JSON.stringify(bookingResult.data, null, 2)}`,
-          duration: 5,
-        });
-
-        apiNotification.info({
-          message: 'Chuyển đến trang thanh toán',
-          description:
-            'Bạn sẽ được chuyển đến trang thanh toán trong giây lát.',
-          duration: 3,
-        });
-
-        setTimeout(() => {
-          navigate(
-            `/payments?bookingCode=${bookingResult.data.booking_code}&email=${email}&tripId=${trip.id}`,
-            { state: { booking: bookingResult.data, trip } }
-          );
-        }, 3000);
-      } else {
-        openErrorNotification(
-          'Xác thực OTP thất bại',
-          'Mã OTP không hợp lệ. Vui lòng thử lại.'
-        );
-      }
-    } catch (error) {
-      console.error('OTP verify error:', error);
-      openErrorNotification(
-        'Xác thực OTP thất bại',
-        'Có lỗi xảy ra khi xác thực OTP. Vui lòng thử lại.'
-      );
-    } finally {
-      setIsModalOpen(false);
-      setOtp('');
-    }
-
     // alert('Thong tin dat ve: ' + JSON.stringify(bookingInfo, null, 2));
   };
 
@@ -237,7 +244,13 @@ const BookingPage = () => {
   return (
     <>
       {contextHolder}
-      <ModalConfirm isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} onSubmit={handleBookingInfo} />
+      <ModalConfirm
+        isModalOpen={isModalOpen}
+        setIsModalOpen={setIsModalOpen}
+        otp={otp}
+        setOtp={setOtp}
+        onSubmit={onSubmitOtp}
+      />
       <Container maxWidth="lg" style={{ marginBottom: '20px' }}>
         <h2>Booking Page for Trip ID: {tripId}</h2>
 
