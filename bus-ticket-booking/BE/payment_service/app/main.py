@@ -239,6 +239,8 @@ async def momo_callback(
         return JSONResponse(
             status_code=200,
             content={
+                "payment_id": processed_data.get("payment_id"),
+                "booking_id": processed_data.get("booking_id"),
                 "partnerCode": callback_data.partnerCode,
                 "orderId": callback_data.orderId,
                 "requestId": callback_data.requestId,
