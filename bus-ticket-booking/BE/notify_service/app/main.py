@@ -1,159 +1,352 @@
-import requests
-from fastapi import BackgroundTasks, FastAPI, Depends
-from fastapi.encoders import jsonable_encoder 
-from . import models, schemas, repository, utils, repository, response
-from .database import engine, SessionLocal
-from sqlalchemy.orm import Session # thu vien sqlalchemy
-# from datetime import datetime, timezone, time
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-# from pydantic import BaseModel
-# from typing import Optional
+import threading
+import logging
+
+from . import models, schemas, repository, utils, response
+from .database import engine, get_db
+from .config import settings
+from . import rabbitmq_consumer
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+models.Base.metadata.create_all(bind=engine)
 
 tags_metadata = [
     {
-        "name": "notifications",
-        "description": "Operations with notifications.",
+        "name": "otp",
+        "description": "OTP verification operations."
+    },
+    {
+        "name": "email",
+        "description": "Email notification operations."
     },
 ]
-# Khởi tạo ứng dụng FastAPI với thông tin cơ bản
+
+# Khởi tạo ứng dụng FastAPI
 app = FastAPI(
-    title="Notification Service",  # Tên service
-    description="Service xử lý thông báo",  # Mô tả
-    version="2.0.0",  # Phiên bản
-    docs_url="/notifications/docs",  # Swagger UI path
-    redoc_url="/notifications/redoc",  # ReDoc path
-    openapi_tags=tags_metadata,  # Thêm thẻ (tags) cho OpenAPI
+    title="Notification & OTP Service",
+    description="Service xử lý OTP xác thực và gửi email thông báo",
+    version="3.0.0",
+    docs_url="/notifications/docs",
+    redoc_url="/notifications/redoc",
+    openapi_tags=tags_metadata,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Cho phép tất cả các nguồn (cẩn thận với việc này trong môi trường production)
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Cho phép tất cả các phương thức HTTP
-    allow_headers=["*"],  # Cho phép tất cả các headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-models.Base.metadata.create_all(bind=engine) # tao tat ca cac bang trong database
+# RabbitMQ Consumer Thread
+consumer_thread = None
 
-# ham lay session db
-def get_db(): # ham lay session db
-    db = SessionLocal() # tao session db
-    try:
-        yield db # tra ve session db
-    finally:
-        db.close() # dong session db
+@app.on_event("startup")
+def startup_event():
+    """Start RabbitMQ consumer in background thread"""
+    global consumer_thread
+    
+    rabbitmq_config = {
+        'host': settings.rabbitmq_host,
+        'port': settings.rabbitmq_port,
+        'username': settings.rabbitmq_user,
+        'password': settings.rabbitmq_password
+    }
+    
+    consumer = rabbitmq_consumer.setup_consumer(rabbitmq_config)
+    
+    if consumer:
+        consumer_thread = threading.Thread(target=consumer.start_consuming, daemon=True)
+        consumer_thread.start()
+        logger.info("RabbitMQ Consumer started in background thread")
+    else:
+        logger.warning("RabbitMQ Consumer failed to start - running in HTTP-only mode")
 
-@app.get("/health")
-def read_root():
-    return {"status": "ok", "message": "Welcome to the Notification Service API"}
+
+@app.on_event("shutdown")
+def shutdown_event():
+    """Cleanup on shutdown"""
+    logger.info("Shutting down Notification Service...")
 
 
-# verify otp
-@app.post("/verifyOTP", tags=["notifications"])
-def verify_otp(request: schemas.VerifyOTPRequest, db: Session = Depends(get_db)):
-    db_otp = repository.get_otp_by_username(db, request.username, request.code, request.payment_id)
-    current_time = utils.get_current_time()
+@app.get("/health", tags=["otp"])
+def health_check():
+    return {"status": "Notification & OTP Service is healthy"}
 
+@app.post("/otp/send", tags=["otp"], status_code=status.HTTP_201_CREATED)
+def send_otp(
+    otp_request: schemas.OTPCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Gửi mã OTP 6 chữ số qua email
+    """
+    # Validate loại OTP
+    valid_types = ["booking", "refund", "update"]
+    if otp_request.type not in valid_types:
+        return response.errorResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            msg=f"Loại OTP không hợp lệ. Chỉ chấp nhận: {', '.join(valid_types)}"
+        )
+    
+    otp_type_enum = models.OTPType[otp_request.type.upper()]
+    
+    # Kiểm tra OTP gần nhất (rate limiting)
+    latest_otp = repository.get_latest_otp(db, otp_request.email, otp_type_enum)
+    if latest_otp and latest_otp.status == models.OTPStatus.PENDING:
+        time_diff = (utils.get_current_datetime() - latest_otp.created_at).total_seconds()
+        if time_diff < 60:  # Chờ ít nhất 60 giây
+            return response.errorResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                msg=f"Vui lòng đợi {60 - int(time_diff)} giây trước khi yêu cầu OTP mới"
+            )
+    
+    # Tạo mã OTP
+    otp_code = utils.generate_otp_code(length=6)
+    expiry_minutes = 5
+    
+    # Lưu OTP vào database
+    db_otp = repository.create_otp(
+        db=db,
+        user_id=otp_request.user_id,
+        email=otp_request.email,
+        otp_code=otp_code,
+        otp_type=otp_type_enum,
+        expiry_minutes=expiry_minutes,
+        booking_id=otp_request.booking_id
+    )
+    
+    # Gửi OTP qua email (background task)
+    def send_otp_task():
+        utils.send_otp_email(
+            receiver_email=otp_request.email,
+            otp_code=otp_code,
+            otp_type=otp_request.type,
+            expiry_minutes=expiry_minutes
+        )
+    
+    background_tasks.add_task(send_otp_task)
+    
+    return response.successResponse(
+        status_code=status.HTTP_201_CREATED,
+        msg="Mã OTP đã được gửi đến email của bạn",
+        data={
+            "otp_id": db_otp.id,
+            "email": db_otp.email,
+            "expiry_time": db_otp.expiry_time.isoformat(),
+            "expires_in_minutes": expiry_minutes
+        }
+    )
+
+@app.post("/otp/verify", tags=["otp"])
+def verify_otp(
+    otp_verify: schemas.OTPVerify,
+    db: Session = Depends(get_db)
+):
+    """
+    Xác thực mã OTP
+    """
+    # Validate format OTP
+    is_valid, error_msg = utils.validate_otp_format(otp_verify.otp)
+    if not is_valid:
+        return response.errorResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            msg=error_msg
+        )
+    
+    # Validate loại OTP
+    valid_types = ["booking", "refund", "update"]
+    if otp_verify.type not in valid_types:
+        return response.errorResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            msg=f"Loại OTP không hợp lệ"
+        )
+    
+    otp_type_enum = models.OTPType[otp_verify.type.upper()]
+    
+    # Expire các OTP cũ trước
+    repository.expire_old_otps(db)
+    
+    # Tìm OTP hợp lệ
+    db_otp = repository.get_valid_otp(db, otp_verify.email, otp_verify.otp, otp_type_enum)
+    
     if not db_otp:
-        return response.errorResponse(status_code=404, msg="OTP không tồn tại")    
-
-    # het han
-    if db_otp.expires_at < current_time or db_otp.status == 'expired':
-        db_otp.status = 'expired'
-        db.commit()
-        db.refresh(db_otp)
-        return response.errorResponse(
-            status_code=400,
-            msg="OTP đã hết hạn",
-        )
-
-    # da su dung
-    if db_otp.used_at is not None or db_otp.status == 'used':
-        return response.errorResponse(
-            status_code=400,
-            msg="OTP đã được sử dụng",
-        )
-
-    # Cap nhat used_at neu OTP hop le
-    db_otp.used_at = current_time
-    db_otp.status = 'used'
-    db.commit()
-    db.refresh(db_otp)
+        # Kiểm tra xem có OTP nào cho email này không
+        latest_otp = repository.get_latest_otp(db, otp_verify.email, otp_type_enum)
+        
+        if not latest_otp:
+            return response.errorResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                msg="Không tìm thấy mã OTP. Vui lòng yêu cầu mã OTP mới"
+            )
+        
+        # OTP sai hoặc hết hạn, tăng số lần thử
+        if latest_otp.status == models.OTPStatus.PENDING:
+            repository.increment_otp_attempts(db, latest_otp.id)
+            
+            # Kiểm tra số lần thử
+            if latest_otp.attempts + 1 >= 5:
+                repository.mark_otp_as_expired(db, latest_otp.id)
+                return response.errorResponse(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    msg="Bạn đã nhập sai OTP quá 5 lần. Vui lòng yêu cầu mã OTP mới"
+                )
+            
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg=f"Mã OTP không đúng. Còn {4 - latest_otp.attempts} lần thử"
+            )
+        
+        if latest_otp.status == models.OTPStatus.USED:
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg="Mã OTP này đã được sử dụng"
+            )
+        
+        if latest_otp.status == models.OTPStatus.EXPIRED:
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg="Mã OTP đã hết hạn. Vui lòng yêu cầu mã OTP mới"
+            )
     
-    # utils.send_success_email(request.email)
+    # OTP đúng, đánh dấu đã sử dụng
+    repository.mark_otp_as_used(db, db_otp.id)
     
     return response.successResponse(
-                                        msg="Xác thực OTP thành công",
-                                        data=jsonable_encoder({
-                                            "valid": True,
-                                            "message": "OTP hợp lệ và chưa được sử dụng"
-                                        }),
-                                    )
+        msg="Xác thực OTP thành công",
+        data={
+            "otp_id": db_otp.id,
+            "email": db_otp.email,
+            "type": db_otp.type.value,
+            "booking_id": db_otp.booking_id,
+            "verified": True
+        }
+    )
 
-#generate otp
-@app.post("/generateOTP/{username}", tags=["notifications"])
-def generate_otp(request: schemas.GenerateOTPBody, background: BackgroundTasks, db: Session = Depends(get_db)): 
-    is_spam = repository.check_otp_spam(db, request.username, request.payment_id, minutes=5)
-    if is_spam:
-        return response.errorResponse(status_code=429, msg="Gửi OTP quá nhiều lần, vui lòng thử lại sau")
+@app.get("/otp/email/{email}", tags=["otp"])
+def get_otps_by_email(
+    email: str,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """Lấy lịch sử OTP theo email"""
+    otps = repository.get_otps_by_email(db, email, skip=skip, limit=limit)
     
-    rec, code = repository.create_otp_no_collision_simple(
-        db,
-        username=request.username,
-        payment_id=request.payment_id,
-        purpose=request.purpose,
-        email=request.email,
-    ) 
-    # gửi email ở background (tuỳ bạn)
-    background.add_task(utils.send_otp_email, request.email, code)
-
+    otps_data = []
+    for otp in otps:
+        otps_data.append({
+            "id": otp.id,
+            "email": otp.email,
+            "type": otp.type.value,
+            "status": otp.status.value,
+            "attempts": otp.attempts,
+            "expiry_time": otp.expiry_time.isoformat(),
+            "created_at": otp.created_at.isoformat()
+        })
+    
     return response.successResponse(
-                                        msg="Tạo OTP thành công",
-                                        data=jsonable_encoder({
-                                            "username": rec.username,
-                                            "payment_id": rec.payment_id,
-                                            "purpose": rec.purpose, 
-                                            "expires_at": rec.expires_at,  # jsonable_encoder sẽ tự .isoformat()
-                                        }),
-                                    ) 
-    #  set pending 
-    # otp_code = utils.generate_otp()
-    # current_time = utils.get_current_time()
-    # expiry_time = utils.get_expiry(current_time, minutes=5)
+        msg="Lấy lịch sử OTP thành công",
+        data=otps_data
+    )
+
+@app.get("/otp/{otp_id}", tags=["otp"])
+def get_otp_by_id(
+    otp_id: str,
+    db: Session = Depends(get_db)
+):
+    """Lấy thông tin OTP theo ID"""
+    db_otp = repository.get_otp_by_id(db, otp_id)
     
-    # # Luu otp_code va expiry_time vao database neu can thiet
-    # otp_record = models.Notification(
-    #     username=request.username,
-    #     payment_id=request.payment_id,
-    #     purpose=request.purpose,
-    #     code=otp_code,
-    #     created_at=current_time,
-    #     expires_at=expiry_time,
-    #     status='unused'  # set trang thai ban dau la 'unused'
-    # )
- 
-    # utils.send_otp_email(request.email, otp_code)
+    if not db_otp:
+        return response.errorResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            msg="Không tìm thấy OTP"
+        )
+    
+    otp_response = schemas.OTPResponse.model_validate(db_otp)
+    
+    return response.successResponse(
+        msg="Lấy thông tin OTP thành công",
+        data=otp_response.model_dump(mode='json')
+    )
 
-    # db_otp = repository.create_otp(db, otp_record)
-    # return response.successResponse(
-    #                                     msg="Tạo OTP thành công",
-    #                                     data=jsonable_encoder({
-    #                                         "username": db_otp.username,
-    #                                         "payment_id": db_otp.payment_id,
-    #                                         "purpose": db_otp.purpose, 
-    #                                         "expires_at": db_otp.expires_at,  # jsonable_encoder sẽ tự .isoformat()
-    #                                     }),
-    #                                 )
+# EMAIL NOTIFICATION ENDPOINTS
 
-@app.post("/paymentNotification", tags=["notifications"])
-def payment_notification(request: schemas.PaymentNotification, db: Session = Depends(get_db)):
-    payment_email = utils.send_email_payment(request)
-    return response.successResponse(msg="Tạo thông báo thanh toán thành công", data=jsonable_encoder(payment_email))
-                                    
-# Thuyên lấy dữ liệu thông báo
-@app.get("/", tags=["notifications"])
-def get_all_notifications(skip:int=0, limit:int=100, db:Session=Depends(get_db)):
-    notifications = repository.get_all_notifications(db, skip=skip, limit=limit)
-    return response.successResponse(msg="Lấy danh sách thông báo thành công",
-                                     data=jsonable_encoder([schemas.NotificationDetail.model_validate(t).model_dump() for t in notifications])
-                                        )
+@app.post("/email/booking-confirmation", tags=["email"])
+def send_booking_confirmation(
+    confirmation_email: schemas.BookingConfirmationEmail,
+    background_tasks: BackgroundTasks
+):
+    """Gửi email xác nhận đặt vé"""
+    
+    def send_confirmation_task():
+        utils.send_booking_confirmation_email(
+            receiver_email=confirmation_email.to_email,
+            booking_code=confirmation_email.booking_code,
+            customer_name=confirmation_email.customer_name,
+            trip_info=confirmation_email.trip_info,
+            seat_numbers=confirmation_email.seat_numbers,
+            total_price=confirmation_email.total_price,
+            booking_time=confirmation_email.booking_time
+        )
+    
+    background_tasks.add_task(send_confirmation_task)
+    
+    return response.successResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        msg="Email xác nhận đặt vé đang được gửi",
+        data={"booking_code": confirmation_email.booking_code}
+    )
+
+@app.post("/email/booking-cancellation", tags=["email"])
+def send_booking_cancellation(
+    cancellation_email: schemas.BookingCancellationEmail,
+    background_tasks: BackgroundTasks
+):
+    """Gửi email thông báo hủy vé"""
+    
+    def send_cancellation_task():
+        utils.send_booking_cancellation_email(
+            receiver_email=cancellation_email.to_email,
+            booking_code=cancellation_email.booking_code,
+            customer_name=cancellation_email.customer_name,
+            cancellation_reason=cancellation_email.cancellation_reason
+        )
+    
+    background_tasks.add_task(send_cancellation_task)
+    
+    return response.successResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        msg="Email hủy vé đang được gửi",
+        data={"booking_code": cancellation_email.booking_code}
+    )
+
+@app.post("/email/booking-refund", tags=["email"])
+def send_booking_refund(
+    refund_email: schemas.BookingRefundEmail,
+    background_tasks: BackgroundTasks
+):
+    """Gửi email thông báo hoàn tiền"""
+    
+    def send_refund_task():
+        utils.send_booking_refund_email(
+            receiver_email=refund_email.to_email,
+            booking_code=refund_email.booking_code,
+            customer_name=refund_email.customer_name,
+            refund_amount=refund_email.refund_amount
+        )
+    
+    background_tasks.add_task(send_refund_task)
+    
+    return response.successResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        msg="Email hoàn tiền đang được gửi",
+        data={"booking_code": refund_email.booking_code, "refund_amount": refund_email.refund_amount}
+    )
