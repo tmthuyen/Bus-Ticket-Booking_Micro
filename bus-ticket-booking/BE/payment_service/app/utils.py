@@ -5,7 +5,11 @@ import uuid
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Any, Optional
+from zoneinfo import ZoneInfo
 import re
+
+def now_vietnam() -> datetime:
+    return datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
 
 def generate_order_id(prefix: str = "PAY") -> str:
     """Tạo order ID unique"""

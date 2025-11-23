@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 import enum
 from uuid import uuid4  # ✅ FIXED: Thêm import uuid4
+from app import utils
 
 from sqlalchemy import (
     String, DECIMAL, TIMESTAMP, TEXT, Enum, ForeignKey, Index
@@ -46,6 +47,8 @@ class PaymentEventType(enum.Enum):
 # PAYMENT MODEL
 # -------------------------
 
+
+
 class Payment(Base):
     __tablename__ = "payments"
 
@@ -80,7 +83,7 @@ class Payment(Base):
 
     transaction_time: Mapped[datetime] = mapped_column(
         TIMESTAMP,
-        default=datetime.utcnow
+        default=utils.now_vietnam()
     )
 
     provider_transaction_id: Mapped[Optional[str]] = mapped_column(
@@ -188,7 +191,7 @@ class PaymentLog(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP,
-        default=datetime.utcnow
+        default=utils.now_vietnam()
     )
 
     # Relationship
