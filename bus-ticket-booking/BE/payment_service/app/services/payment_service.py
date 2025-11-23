@@ -377,14 +377,36 @@ class PaymentService:
         data: Dict[str, Any]
     ):
         """
-        Gửi notification tới Booking Service (placeholder)
+        Gửi notification tới Booking Service để xác nhận booking
         
         Args:
             booking_id: ID của booking
             event_type: Loại event
             data: Dữ liệu kèm theo
         """
-        # TODO: Implement actual notification logic
-        # Có thể dùng message queue (RabbitMQ/Redis) hoặc HTTP call
-        logger.info(f"Notifying Booking Service - booking_id: {booking_id}, event: {event_type}")
-        pass
+        try:
+            import httpx
+            
+            if event_type == "payment_success":
+                # Gọi endpoint confirm của booking service
+                booking_confirm_url = f"{settings.booking_service_url}/bookings/{booking_id}/confirm"
+                
+                logger.info(f"Calling Booking Service to confirm booking {booking_id} at {booking_confirm_url}")
+                
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.put(booking_confirm_url)
+                    
+                    if response.status_code == 200:
+                        logger.info(f"✅ Successfully confirmed booking {booking_id} in Booking Service")
+                        logger.info(f"Booking Service response: {response.json()}")
+                    else:
+                        logger.error(
+                            f"❌ Failed to confirm booking {booking_id}. "
+                            f"Status: {response.status_code}, Response: {response.text}"
+                        )
+            else:
+                logger.info(f"Event type {event_type} does not require booking confirmation")
+                
+        except Exception as e:
+            logger.error(f"❌ Error notifying Booking Service for booking {booking_id}: {str(e)}")
+            # Không raise exception để không ảnh hưởng đến payment flow
