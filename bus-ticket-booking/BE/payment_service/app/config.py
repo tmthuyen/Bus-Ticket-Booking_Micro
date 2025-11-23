@@ -3,10 +3,10 @@ from pydantic import Field
 
 class Settings(BaseSettings): 
     # External Services
-    user_service_url: str = Field(..., env="USER_SERVICE_URL")
-    trip_service_url: str = Field(..., env="TRIP_SERVICE_URL")
-    booking_service_url: str = Field(..., env="BOOKING_SERVICE_URL")
-    notify_service_url: str = Field(..., env="NOTIFY_SERVICE_URL")
+    user_service_url: str = Field(default="http://localhost:8003", env="USER_SERVICE_URL")
+    trip_service_url: str = Field(default="http://localhost:8002", env="TRIP_SERVICE_URL")
+    booking_service_url: str = Field(default="http://localhost:8003", env="BOOKING_SERVICE_URL")
+    notify_service_url: str = Field(default="http://localhost:8005", env="NOTIFY_SERVICE_URL")
 
     #  db and app
     db_type: str = Field(..., env="DB_TYPE")

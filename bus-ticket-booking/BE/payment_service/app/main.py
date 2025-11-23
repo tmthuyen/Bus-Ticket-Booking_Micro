@@ -15,6 +15,7 @@ from .config import settings
 from .response import successResponse, errorResponse
 from .services.payment_service import PaymentService
 from .services.momo_service import MoMoService
+from .utils import serialize_json
 
 # Configure logging
 logging.basicConfig(
@@ -314,6 +315,17 @@ async def sync_momo_payment_status(booking_id: str, db: Session = Depends(get_db
             )
             
             logger.info(f"✅ Synced payment {db_payment.id} to SUCCESS")
+            
+            # Gọi Booking Service để xác nhận booking
+            await payment_service._notify_booking_service(
+                booking_id=booking_id,
+                event_type="payment_success",
+                data={
+                    "payment_id": db_payment.id,
+                    "amount": str(db_payment.amount),
+                    "trans_id": momo_result.get("trans_id")
+                }
+            )
             
             return successResponse(
                 msg="Payment status synced successfully",
