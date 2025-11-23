@@ -4,7 +4,7 @@ from pydantic import Field
 class Settings(BaseSettings): 
     # External Services
     user_service_url: str = Field(..., env="USER_SERVICE_URL") 
-    # booking_service_url: str = Field(..., env="BOOKING_SERVICE_URL")
+    booking_service_url: str = Field(..., env="BOOKING_SERVICE_URL")
     # notify_service_url: str = Field(..., env="NOTIFY_SERVICE_URL")
     
     #  db and app

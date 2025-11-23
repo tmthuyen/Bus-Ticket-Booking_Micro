@@ -82,6 +82,7 @@ services:
       - DB_ROOT_URL=${TRIP_DB_ROOT_URL}
       - DB_URL=${TRIP_DB_URL}
       - USER_SERVICE_URL=${USER_URL}
+      - BOOKING_SERVICE_URL=${BOOKING_URL}
     depends_on:
       - trip_db
 

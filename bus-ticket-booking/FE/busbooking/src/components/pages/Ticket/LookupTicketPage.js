@@ -137,12 +137,7 @@ const LookupTicketPage = () => {
   const dispatch = useDispatch();
   const [messageAnt, contextHolder] = message.useMessage();
 
-  // store state
-  const {
-    trip: tripById,
-    loading: loadingTripById,
-    error: errorTripById,
-  } = useSelector((state) => state.trips);
+  // store state 
   const {
     ticketInfo,
     loading: loadingLookup,
@@ -152,6 +147,8 @@ const LookupTicketPage = () => {
 
   const [bookingCode, setBookingCode] = useState('');
   const [email, setEmail] = useState('');
+  const [ticketFetched, setTicketFetched] = useState(null);
+
   const [submitLookup, setSubmitLookup] = useState(false);
 
   const onFinish = async (values) => {
@@ -170,6 +167,7 @@ const LookupTicketPage = () => {
     if (success && !loadingLookup && ticketInfo) {
       messageAnt.success(messageLookup);
       console.log('Ticket info fetched:', parseTicketInfo(ticketInfo));
+      setTicketFetched(ticketInfo);
     }
 
     if (!success && !loadingLookup) {
@@ -183,6 +181,11 @@ const LookupTicketPage = () => {
     messageAnt,
     submitLookup,
   ]);
+
+  useEffect(() => {
+    setTicketFetched(null);
+
+  }, [email, bookingCode]);
 
   const onFinishFailed = (errorInfo) => {
     console.log('Failed to submit form customer booking:', errorInfo);
@@ -231,6 +234,7 @@ const LookupTicketPage = () => {
                 <Input
                   allowClear
                   placeholder="Nhập mã đặt vé"
+                  value={bookingCode}
                   // prefix={< />}
                 />
               </Form.Item>
@@ -243,6 +247,7 @@ const LookupTicketPage = () => {
                   allowClear
                   placeholder="Nhập email"
                   prefix={<MailOutlined />}
+                  value={email}
                 />
               </Form.Item>
 
@@ -265,8 +270,8 @@ const LookupTicketPage = () => {
           </Grid>
 
           <Grid size={{ xs: 12, md: 6 }} sx={{ marginTop: 4 }}>
-            {success && ticketInfo && (
-              <TicketCard ticketData={parseTicketInfo(ticketInfo)} />
+            {success && ticketFetched && (
+              <TicketCard ticketData={parseTicketInfo(ticketFetched)} />
             )}
           </Grid>
         </Grid>
@@ -284,26 +289,7 @@ const TicketCard = ({ ticketData }) => {
           Không có thông tin vé để hiển thị.
         </Typography>
       </>
-    );
-    // const info = {
-  //   id: ticketInfo.id,
-  //   bookingCode: ticketInfo.booking_code,
-  //   fullName: ticketInfo.full_name,
-  //   phone: ticketInfo.phone,
-  //   email: ticketInfo.email,
-  //   status: ticketInfo.status,
-  //   seatQuantity: ticketInfo.seat_quantity,
-  //   totalPrice: ticketInfo.total_price,
-  //   createdAt: ticketInfo.created_at,
-  //   seatAssignments: ticketInfo.seat_assignments
-  //     .map((seat) => seat.seat_number)
-  //     .join(', '),
-  //   origin: ticketInfo.trip?.route?.origin,
-  //   destination: ticketInfo.trip?.route?.destination,
-  //   departureTime: ticketInfo.trip?.departure_time,
-  //   arrivalTime: ticketInfo.trip?.arrival_time,
-  //   busPlateNumber: ticketInfo.trip?.bus?.plate_number,
-  // };
+    ); 
 
   const departimeVN = formatVNDate(ticketData.departureTime, { withTime: true }) || "—";
   const arrivaltimeVN = formatVNDate(ticketData.arrivalTime, {

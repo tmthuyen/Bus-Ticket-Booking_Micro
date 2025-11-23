@@ -141,6 +141,7 @@ def get_seat_layout_by_trip_id(db: Session, trip_id: int):
             "floor": seat_template.floor,
             "row_index": seat_template.row_index,
             "col_index": seat_template.col_index,
+            "is_booked": False
         }
         seat_layout.append(seat_info)
     

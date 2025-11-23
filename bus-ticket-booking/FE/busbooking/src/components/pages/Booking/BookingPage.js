@@ -2,19 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchSeatsByTrip } from '../../../store/actions/tripsAction';
-import {
-  Button,
-  Container,
-  Divider,
-  Grid, 
-  Typography,
-} from '@mui/material';
+import { Box, Button, Container, Divider, Grid, Typography } from '@mui/material';
 import CustomerBookingForm from './CustomerBookingForm';
 import TicketPolicy from './TicketPolicy';
 import BookingSummary from './BookingSummary';
-import SeatMap from './SeatMap'; 
-import { notification } from 'antd'; 
-import { WarningOutlined } from '@ant-design/icons'; 
+import SeatMap from './SeatMap';
+import { notification } from 'antd';
+import { WarningOutlined } from '@ant-design/icons';
 import { createBookingAction } from '../../../store/actions/bookingsAction';
 
 const BookingPage = () => {
@@ -23,7 +17,7 @@ const BookingPage = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
+
   const [apiNotification, contextHolder] = notification.useNotification();
   const openErrorNotification = useCallback(
     (message, description) => {
@@ -47,40 +41,47 @@ const BookingPage = () => {
   // reducer state
   const { trip: tripFromState } = location.state || {};
   const { seatsByTrip, tripsByRoute } = useSelector((state) => state.trips);
-  const { bookingCreated, success: bookingSuccess, message: bookingMessage } = useSelector((state) => state.bookings);
+  const {
+    bookingCreated,
+    success: bookingSuccess,
+    message: bookingMessage,
+  } = useSelector((state) => state.bookings);
   const trip =
     tripFromState || tripsByRoute?.find((t) => t.id === parseInt(tripId));
   // console.log('Trip from state:', tripFromState);
   // console.log('Trip:', trip);
-  
-  const [selectedSeatIds, setSelectedSeatIds] = useState([]);
-  const handleToggleSeat = useCallback((seat) => { 
-    setSelectedSeatIds((prev) => {
-      // console.log('Toggling seat:', prev, seat);
-      let isSelected = false;
-      prev.forEach((s) => {
-        if (s.seat_id === seat.seat_id) {
-          isSelected = true;
-        }
-      });
-      // console.log('Is seat selected:', isSelected);
-      if (isSelected) {
-        return prev.filter((s) => s.seat_id !== seat.seat_id);
-      }
 
-      if (prev.length >= 5) {
-        openErrorNotification(
-          'Chọn ghế thất bại',
-          'Bạn chỉ được chọn tối đa 5 ghế cho mỗi lần đặt vé.'
-        );
-        return prev;
-      }
-      return [
-        ...prev,
-        { seat_id: seat.seat_id, seat_number: seat.seat_number },
-      ];
-    });
-  }, [setSelectedSeatIds, openErrorNotification]);
+  const [selectedSeatIds, setSelectedSeatIds] = useState([]);
+  const handleToggleSeat = useCallback(
+    (seat) => {
+      setSelectedSeatIds((prev) => {
+        // console.log('Toggling seat:', prev, seat);
+        let isSelected = false;
+        prev.forEach((s) => {
+          if (s.seat_id === seat.seat_id) {
+            isSelected = true;
+          }
+        });
+        // console.log('Is seat selected:', isSelected);
+        if (isSelected) {
+          return prev.filter((s) => s.seat_id !== seat.seat_id);
+        }
+
+        if (prev.length >= 5) {
+          openErrorNotification(
+            'Chọn ghế thất bại',
+            'Bạn chỉ được chọn tối đa 5 ghế cho mỗi lần đặt vé.'
+          );
+          return prev;
+        }
+        return [
+          ...prev,
+          { seat_id: seat.seat_id, seat_number: seat.seat_number },
+        ];
+      });
+    },
+    [setSelectedSeatIds, openErrorNotification]
+  );
 
   useEffect(() => {
     if (tripId && seatsByTrip.length === 0) {
@@ -142,16 +143,19 @@ const BookingPage = () => {
     if (!bookingResult || bookingResult.success === false) {
       openErrorNotification(
         'Đặt vé thất bại',
-        bookingResult.message || 'Có lỗi xảy ra khi đặt vé. Vui lòng thử lại sau.'
+        bookingResult.message ||
+          'Có lỗi xảy ra khi đặt vé. Vui lòng thử lại sau.'
       );
       console.error('Booking failed:', bookingResult);
 
       return;
-    } 
-    
+    }
+
     apiNotification.success({
       message: 'Đặt vé thành công',
-      description: `Giữ vé thành công. Mã vé của bạn là: ${bookingResult.data.booking_code}.\n ${JSON.stringify(bookingResult.data, null, 2)}`,
+      description: `Giữ vé thành công. Mã vé của bạn là: ${
+        bookingResult.data.booking_code
+      }.\n ${JSON.stringify(bookingResult.data, null, 2)}`,
       duration: 5,
     });
 
@@ -162,7 +166,10 @@ const BookingPage = () => {
     });
 
     setTimeout(() => {
-      navigate(`/payments?bookingCode=${bookingResult.data.booking_code}&email=${email}&tripId=${trip.id}`, { state: { booking: bookingResult.data, trip } });
+      navigate(
+        `/payments?bookingCode=${bookingResult.data.booking_code}&email=${email}&tripId=${trip.id}`,
+        { state: { booking: bookingResult.data, trip } }
+      );
     }, 3000);
 
     // alert('Thong tin dat ve: ' + JSON.stringify(bookingInfo, null, 2));
@@ -199,12 +206,14 @@ const BookingPage = () => {
               padding: '16px',
             }}
           >
-            <Grid item size={12}> 
+            <Grid item size={12}>
               <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
                 Sơ đồ ghế
               </Typography>
               <SeatMap
-                seats={seatsByTrip}
+                total_seats={seatsByTrip.total_seats || 0}
+                total_booked={seatsByTrip.total_booked || 0}
+                seats={seatsByTrip.seat_layout || []}
                 selectedSeatIds={selectedSeatIds}
                 onToggleSeat={handleToggleSeat}
               />
@@ -236,18 +245,19 @@ const BookingPage = () => {
               </Grid>
             </Grid>
           </Grid>
-          <Grid
-            container
-            size={{ xs: 12, md: 4 }}
-            sx={{
-              background: 'var(--color-white)',
-              borderRadius: '8px',
-              boxShadow: 'var(--box-shadow)',
-              // minHeight: '100vh',
-              padding: '16px',
-            }}
-          >
-            <Grid item size={12}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Box
+              sx={{
+                width: '100%',
+                background: 'var(--color-white)',
+                borderRadius: '8px',
+                boxShadow: 'var(--box-shadow)',
+                // minHeight: '100vh',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
               <BookingSummary
                 title="Thông tin lượt đi"
                 routeLabel={`${trip?.origin || '...'} - ${
@@ -259,9 +269,9 @@ const BookingPage = () => {
                 dropoffPoint={trip?.dropoff_point || '...'}
                 basePrice={trip?.base_price || 0}
                 fare={totalPrice || 0}
-                paymentFee={trip?.payment_fee || 0} 
+                paymentFee={trip?.payment_fee || 0}
               />
-            </Grid>
+            </Box>
           </Grid>
           {/* nut thanh toan va huy booking */}
           <Grid item size={12} sx={{ textAlign: 'right', marginTop: '16px' }}>

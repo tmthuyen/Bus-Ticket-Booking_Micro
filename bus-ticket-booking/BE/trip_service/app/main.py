@@ -1,8 +1,8 @@
 
-from fastapi import FastAPI, Depends, HTTPException 
+from fastapi import FastAPI, Depends, HTTPException, Request 
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-from . import repository, models, schemas, utils
+from . import repository, models, schemas, utils, helper_apis
 from .response import successResponse, errorResponse
 from .database import SessionLocal, engine
 # from .config import settings  
@@ -122,27 +122,49 @@ def update_trip(
 
 # /seats?trip_id=
 @app.get("/seats-by-trip/{trip_id}", response_model=successResponse, tags=["seats"])
-def get_seats_by_trip_id(
+async def get_seats_by_trip_id(
     trip_id: int,  
-    db: Session = Depends(get_db)):
+    db: Session = Depends(get_db)
+):
     """Lấy danh sách ghế theo ID chuyến đi và danh sách ghế cụ thể.""" 
     seats = repository.get_seat_layout_by_trip_id(db=db, trip_id=trip_id)
-    return successResponse(msg="Seats retrieved successfully", data=seats)
+    
+    try:
+        success, seats_data = await helper_apis.get_booked_seats_by_trip_id_in_booking_service(trip_id)
+        if not success:
+            return errorResponse(
+                status_code=400,
+                msg=seats_data.get("detail", "Error fetching trip information")
+            ) 
+    except Exception as e:
+        return errorResponse(
+            status_code=500,
+            msg=str(e)
+        )
+    
+    # "trip_id": 3,
+    # "booked_seat_numbers": [],
+    # "total_booked": 0
+    
+    booked_seat_numbers = seats_data.get("booked_seat_numbers", []) if seats_data else []
+    
+    for seat in seats:
+        if seat.get("seat_number", None) in booked_seat_numbers:
+            seat["is_booked"] = True
+        else:
+            seat["is_booked"] = False
+            
+    response_data = {
+        "trip_id": trip_id,
+        "seat_layout": seats,
+        "total_seats": len(seats),
+        "total_booked": len(set(booked_seat_numbers)),
+    }
+    
+    
+    
+    return successResponse(msg="Seats retrieved successfully", data=response_data)
 
  
-@app.get("/payment-test/callback", tags=["payment-test"])
-def payment_callback(partnerCode: str, orderId: str, amount: float, orderInfo: str, orderType: str, transId: int, resultCode: int, message: str, payType: int, responseTime: str, extraData: str, signature: str):
-    """Endpoint test callback từ payment service. Cho momo, vnpay,..."""
-    print("Callback received:")
-    print(f"partnerCode: {partnerCode}")
-    print(f"orderId: {orderId}")
-    print(f"amount: {amount}")
-    print(f"orderInfo: {orderInfo}")
-    print(f"orderType: {orderType}")
-    print(f"transId: {transId}")
-    return {
-        "partnerCode": partnerCode,
-        "orderId": orderId,
-        "errorCode": errorCode
-    }
+
     

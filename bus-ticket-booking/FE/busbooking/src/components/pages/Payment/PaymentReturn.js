@@ -30,6 +30,9 @@ http://localhost:3000/payment-return?
 const PaymentReturn = () => {
   // const location = useLocation();
   const [searchParams] = useSearchParams();
+  const bookingCode = searchParams.get('bookingCode');
+  const email = searchParams.get('email');
+  const tripId = searchParams.get('tripId');
   // const [resultPayment, setResultPayment] = useState(null);
 
   /**
@@ -51,12 +54,9 @@ const PaymentReturn = () => {
     signature: str
    */
 
-  const callBackPayment =  async (method = PAYMENT_METHOD.MOMO) => {
+  const callBackPayment = async (method = PAYMENT_METHOD.MOMO) => {
     if (method === PAYMENT_METHOD.MOMO) {
       // query params
-      const bookingCode = searchParams.get('bookingCode');
-      const email = searchParams.get('email');
-      const tripId = searchParams.get('tripId');
       const partnerCode = searchParams.get('partnerCode');
       const resultCode = parseInt(searchParams.get('resultCode'));
       const message = searchParams.get('message');
@@ -88,16 +88,25 @@ const PaymentReturn = () => {
       };
 
       try {
-        const resp = await api.post(`${PREFIX_SERVICES.PAYMENTS}/payments/momo/callback`, bodyCallback);
+        const resp = await api.post(
+          `${PREFIX_SERVICES.PAYMENTS}/payments/momo/callback`,
+          bodyCallback
+        );
 
         console.log('MOMO callback response:', resp.data);
 
         // setResultPayment(resp.data);
-
+        const { resultCode, booking_id } = resp.data;
+        if (resultCode === 0) {
+          // Handle successful payment
+          console.log(`Payment successful for booking ID: ${booking_id}`);
+        } else {
+          // Handle failed payment
+          console.log(`Payment failed with resultCode: ${resultCode}`);
+        }
       } catch (error) {
         console.error('Error in MOMO callback:', error);
       }
-
     } else if (method === PAYMENT_METHOD.VNPAY) {
     }
   };
@@ -106,7 +115,12 @@ const PaymentReturn = () => {
   return (
     <>
       <Container maxWidth="lg" sx={{ mt: 1, mb: 4 }}>
-         <Typography variant="h4" style={{ textAlign: 'center', marginBottom: '20px' }}>Payment Return Page</Typography>
+        <Typography
+          variant="h4"
+          style={{ textAlign: 'center', marginBottom: '20px' }}
+        >
+          Payment Return Page
+        </Typography>
 
         {/* <button onClick={() => callBackPayment(PAYMENT_METHOD.MOMO)}>
           Xử lý callback MOMO
