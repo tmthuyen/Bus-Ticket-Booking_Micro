@@ -6,6 +6,14 @@ const PAYMENT_METHOD = {
     CASH: 'CASH',
 } 
 
+const PREFIX_SERVICES = {
+    BOOKINGS: '/bookings',
+    TRIPS: '/trips',
+    USERS: '/users',
+    NOTIFICATIONS: '/notifications',
+    PAYMENTS: '/payments',
+}
+
 export const BOOKING_STATUS = {
     PENDING: {
         label: 'Đang chờ xử lý',
@@ -31,5 +39,6 @@ export const BOOKING_STATUS = {
 // console.log("API_DOMAIN", API_DOMAIN);
 export {
     API_DOMAIN,
-    PAYMENT_METHOD
+    PAYMENT_METHOD,
+    PREFIX_SERVICES,
 };

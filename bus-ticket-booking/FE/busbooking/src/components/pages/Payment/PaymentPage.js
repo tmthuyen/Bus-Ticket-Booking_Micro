@@ -70,7 +70,7 @@ const PaymentPage = () => {
     console.log('Submitting payment with method:', bookingInfo, method);
 
     if (method === PAYMENT_METHOD.MOMO) {
-      alert('Redirecting to MOMO payment gateway...');
+      // alert('Redirecting to MOMO payment gateway...');
 
       try {
         const redirectUrl =
@@ -103,6 +103,19 @@ const PaymentPage = () => {
           payloadPayment
         );
         console.log('MOMO payment response:', resp.data);
+        const { data, message } = resp.data;
+
+        if (!data || !data.payment_url) {
+          console.error('Invalid payment URL in response:', resp.data);
+          return;
+        }
+
+        setTimeout(() => {
+          // alert(
+          //   `Bạn sẽ được chuyển đến cổng thanh toán MOMO trong giây lát...`
+          // );
+          window.location.href = data?.payment_url;
+        }, 3000);
       } catch (error) {
         console.error('Error creating MOMO payment:', error);
       }
