@@ -46,6 +46,7 @@ class BookingResponse(BaseModel):
     status: str
     seat_quantity: int
     total_price: float
+    hold_until: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     

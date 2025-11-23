@@ -159,34 +159,34 @@ def generate_otp_code(length: int = 6) -> str:
 def send_otp_email(
     receiver_email: str,
     otp_code: str,
-    otp_type: str,
+    booking_code: str,
     expiry_minutes: int = 5
 ) -> bool:
-    type_display = {
-        "booking": "XÁC THỰC ĐẶT VÉ",
-        "refund": "XÁC THỰC HOÀN TIỀN",
-        "update": "XÁC THỰC CẬP NHẬT THÔNG TIN"
-    }.get(otp_type, "XÁC THỰC")
+    """Gửi email chứa mã OTP để xác thực booking"""
     
-    subject = f"Mã OTP xác thực - {type_display}"
+    subject = f"Mã OTP xác thực Email - Booking {booking_code}"
     
     body = f"""
 Xin chào,
 
-Mã OTP của bạn để {type_display}:
+Bạn đã yêu cầu mã OTP để xác thực email cho booking {booking_code}.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         MÃ OTP: {otp_code}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏰ Mã OTP này có hiệu lực trong {expiry_minutes} phút.
+📋 Mã Booking: {booking_code}
+⏰ Hiệu lực: {expiry_minutes} phút
 
-⚠️ LƯU Ý:
+⚠️ LƯU Ý QUAN TRỌNG:
 - KHÔNG chia sẻ mã OTP này với bất kỳ ai
-- Nếu bạn không yêu cầu mã OTP này, vui lòng bỏ qua email
+- Mã OTP chỉ được sử dụng MỘT LẦN
+- Nhập sai quá 5 lần sẽ phải yêu cầu mã mới
+- Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email
 
 Trân trọng,
 Đội ngũ Hỗ trợ Khách hàng
+Bus Ticket Booking Service
 """
     
     return send_email(receiver_email, subject, body)

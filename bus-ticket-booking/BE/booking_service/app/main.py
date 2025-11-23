@@ -243,6 +243,25 @@ def confirm_booking(
             msg=f"Không thể xác nhận booking với trạng thái {db_booking.status.value}"
         )
     
+    # Kiểm tra thời gian giữ chỗ có hết hạn không
+    if db_booking.hold_until:
+        from datetime import datetime, timezone
+        current_time = datetime.now(timezone.utc)
+        
+        # Đảm bảo db_booking.hold_until có timezone
+        hold_until = db_booking.hold_until
+        if hold_until.tzinfo is None:
+            hold_until = hold_until.replace(tzinfo=timezone.utc)
+        
+        if current_time > hold_until:
+            # Hết thời gian giữ chỗ -> Tự động hủy booking
+            repository.cancel_booking(db, booking_id)
+            
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg=f"Booking đã hết thời gian giữ chỗ (hết lúc {db_booking.hold_until.strftime('%Y-%m-%d %H:%M:%S')} UTC). Booking đã bị hủy tự động."
+            )
+    
     # Xác nhận booking
     updated_booking = repository.confirm_booking(db, booking_id)
     
