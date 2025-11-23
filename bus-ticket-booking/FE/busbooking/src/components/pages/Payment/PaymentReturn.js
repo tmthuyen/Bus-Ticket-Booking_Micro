@@ -1,58 +1,19 @@
 // params
 
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PAYMENT_METHOD, PREFIX_SERVICES } from '../../../constants';
 import api from '../../../api/api';
 import { useState } from 'react';
 import { Container, Typography } from '@mui/material';
-
-/*
-
-http://localhost:3000/payment-return? 
-&bookingCode=BK2311256191
-&email=tranthuyen2222@gmail.com
-&tripId=1
-&partnerCode=MOMO
-&orderId=BOOK209015b7202511230425236B53ADFB
-&requestId=b230dc58-4892-4ffa-b747-d8b3e5861eb5
-&amount=850000
-&orderInfo=Thanh+to%C3%A1n+v%C3%A9+xe
-&orderType=momo_wallet
-&transId=4614096933
-&resultCode=1002
-&message=Successful.
-&payType=napas
-&responseTime=1763872191084
-&extraData=
-&signature=31549feb0d74c73d730284e5311edb26a78b7a0974eee3e6ed15e5a3df58d834
-
-*/
+ 
 const PaymentReturn = () => {
   // const location = useLocation();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const bookingCode = searchParams.get('bookingCode');
   const email = searchParams.get('email');
   const tripId = searchParams.get('tripId');
-  // const [resultPayment, setResultPayment] = useState(null);
-
-  /**
-   * 
-   * class MoMoCallbackRequest(BaseModel):
-    """Schema callback từ MoMo"""
-    partnerCode: str
-    orderId: str
-    requestId: str  
-    amount: int
-    orderInfo: str
-    orderType: str
-    transId: Optional[int] = None
-    resultCode: int
-    message: str
-    payType: str
-    responseTime: int
-    extraData: Optional[str] = ""
-    signature: str
-   */
+  
 
   const callBackPayment = async (method = PAYMENT_METHOD.MOMO) => {
     if (method === PAYMENT_METHOD.MOMO) {
@@ -100,7 +61,9 @@ const PaymentReturn = () => {
         if (resultCode === 0) {
           // Handle successful payment
           console.log(`Payment successful for booking ID: ${booking_id}`);
-        } else {
+          navigate(`/booking-success?bookingId=${booking_id}&paymentId=${orderId}`);
+
+        } else if (resultCode === 1002) {
           // Handle failed payment
           console.log(`Payment failed with resultCode: ${resultCode}`);
         }

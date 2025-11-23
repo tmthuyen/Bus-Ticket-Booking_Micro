@@ -32,18 +32,25 @@ app.add_middleware(
 # Health check: ví dụ cho phép tối đa 10 request/phút/IP
 @app.get("/healthz")
 @limiter.limit("10/minute")
-def health(request: Request):
-    
-    print(f"Health check from: {request.client.host}")
-    print("MOMO PAYMENT")
+def health(request: Request): 
+    """Kiểm tra gateway dịch vụ"""
     return {"status": "ok"}
 
+
+@app.post("/momo-callback")
+def test_payment_callback(request: Request):
+    """ Xử lý callback từ MoMo (chỉ ví dụ) """
+    print("Received MoMo payment callback")
+    print("Headers:", request.headers)
+    print("Body:", request.body())
+    return {"message": "MoMo callback received"}
 
 # Wildcard: mọi request đi qua đây
 # Ví dụ giới hạn: 100 request / phút / IP
 @app.api_route("/{full_path:path}", methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"])
 @limiter.limit("50/minute")
 async def gateway(full_path: str, request: Request):
+    """Xử lý proxy tất cả các request còn lại"""
     path = "/" + full_path
 
     # Kiểm tra JWT cho các path không nằm trong ALLOWLIST

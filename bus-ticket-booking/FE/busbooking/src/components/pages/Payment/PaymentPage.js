@@ -21,13 +21,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { fetchBookingByCodeAction } from '../../../store/actions/bookingsAction';
 import { fetchTripById } from '../../../store/actions/tripsAction';
-import api from '../../../api/api';
+import api, { parseAxiosError } from '../../../api/api';
+import { message } from 'antd';
 
 const PaymentPage = () => {
   // hooks
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
+  const [messageAnt, contextHolder] = message.useMessage();
 
   // reducer state
   const { tripById: tripChosen } = useSelector((state) => state.trips);
@@ -36,6 +38,7 @@ const PaymentPage = () => {
 
   // local state
   const [method, setMethod] = useState(PAYMENT_METHOD.MOMO);
+  const [loadingPayment, setLoadingPayment] = useState(false);
 
   // query params
   const bookingCode = searchParams.get('bookingCode');
@@ -71,9 +74,7 @@ const PaymentPage = () => {
 
     if (method === PAYMENT_METHOD.MOMO) {
       // alert('Redirecting to MOMO payment gateway...');
-
-      try {
-        const redirectUrl =
+      const redirectUrl =
           'http://localhost:3000/payment-return?' +
           '&bookingCode=' +
           bookingInfo?.booking_code +
@@ -82,7 +83,7 @@ const PaymentPage = () => {
           '&tripId=' +
           bookingInfo?.trip_id;
 
-        const ipnUrl = `${API_DOMAIN}/healthz`;
+        const ipnUrl = `${API_DOMAIN}/momo-callback`;
 
         const payloadPayment = {
           booking_id: bookingInfo?.id,
@@ -97,6 +98,10 @@ const PaymentPage = () => {
         };
 
         console.log('Payment payload MOMO:', payloadPayment);
+        setLoadingPayment(true);
+
+      try {
+        
 
         const resp = await api.post(
           '/payments/payments/momo/create',
@@ -110,6 +115,8 @@ const PaymentPage = () => {
           return;
         }
 
+        messageAnt.success('Tạo thanh toán MOMO thành công! Đang chuyển hướng...');
+
         setTimeout(() => {
           // alert(
           //   `Bạn sẽ được chuyển đến cổng thanh toán MOMO trong giây lát...`
@@ -117,10 +124,18 @@ const PaymentPage = () => {
           window.location.href = data?.payment_url;
         }, 3000);
       } catch (error) {
-        console.error('Error creating MOMO payment:', error);
+
+        console.error('Error creating MOMO payment:', parseAxiosError(error));
+        messageAnt.error(
+          `Lỗi khi tạo thanh toán MOMO: ${parseAxiosError(error).message || error.message}`
+        );
+        
+      } finally {
+        setLoadingPayment(false);
       }
+
     } else if (method === PAYMENT_METHOD.VNPAY) {
-      alert('Redirecting to VNPAY payment gateway...');
+      alert('Chua ho tro VNPAY');
     } else {
       alert('Please select a valid payment method.');
     }
@@ -164,6 +179,7 @@ const PaymentPage = () => {
 
   return (
     <>
+      {contextHolder}
       <Container maxWidth="lg" sx={{ mt: 1, mb: 4 }}>
         <Typography variant="h4" style={{ textAlign: 'center' }}>
           Payment Page
@@ -191,6 +207,7 @@ const PaymentPage = () => {
                 sx={{ mt: 2 }}
                 fullWidth
                 onClick={handleSubmitPayment}
+                loading={loadingPayment}
               >
                 Thanh toán ngay
               </Button>

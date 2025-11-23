@@ -179,7 +179,7 @@ def get_all_bookings(
     )
 
 @app.get("/{booking_id}", tags=["bookings"])
-def get_booking_by_id(
+async def get_booking_by_id(
     booking_id: str,
     db: Session = Depends(get_db)
 ):
@@ -193,6 +193,20 @@ def get_booking_by_id(
         )
     
     booking_response = schemas.BookingResponse.model_validate(db_booking)
+    
+    try:
+        success, trip_data = await helpers_api.get_trip_by_id_of_trip_service(booking_response.trip_id)
+        if not success:
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg=trip_data.get("detail", "Error fetching trip information")
+            )
+        booking_response.trip = trip_data.get("data", {})
+    except Exception as e:
+        return response.errorResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            msg=str(e)
+        )
     
     return response.successResponse(
         msg="Lấy thông tin booking thành công",
@@ -446,7 +460,7 @@ async def search_booking_by_email_and_code(
     booking_response = schemas.BookingResponse.model_validate(db_booking)
     
     try:
-        success, trip_data = await helpers_api.get_trip_by_id_of_trip_service(db_booking.trip_id)
+        success, trip_data = await helpers_api.get_trip_by_id_of_trip_service(booking_response.trip_id)
         if not success:
             return response.errorResponse(
                 status_code=status.HTTP_400_BAD_REQUEST,

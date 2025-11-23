@@ -2,7 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchSeatsByTrip } from '../../../store/actions/tripsAction';
-import { Box, Button, Container, Divider, Grid, Typography } from '@mui/material';
+import {
+  Box,
+  Button,
+  Container,
+  Divider,
+  Grid,
+  Typography,
+} from '@mui/material';
 import CustomerBookingForm from './CustomerBookingForm';
 import TicketPolicy from './TicketPolicy';
 import BookingSummary from './BookingSummary';
@@ -10,6 +17,8 @@ import SeatMap from './SeatMap';
 import { notification } from 'antd';
 import { WarningOutlined } from '@ant-design/icons';
 import { createBookingAction } from '../../../store/actions/bookingsAction';
+import ModalConfirm from './ModalConfirm';
+import { verifyOtp } from '../../../api/notificationApi';
 
 const BookingPage = () => {
   // hooks
@@ -37,6 +46,9 @@ const BookingPage = () => {
   const [email, setEmail] = useState('');
   const [isReadPolicy, setIsReadPolicy] = useState(false);
   const [totalPrice, setTotalPrice] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [otp, setOtp] = useState('');
+  // const [otp, setOtp] = useState([]);
 
   // reducer state
   const { trip: tripFromState } = location.state || {};
@@ -94,6 +106,9 @@ const BookingPage = () => {
     setTotalPrice(selectedSeatIds?.length * trip.base_price || 0);
   }, [selectedSeatIds, trip]);
 
+  const onShowModal = () => {
+    setIsModalOpen(true);
+  };
   const handleBookingInfo = async () => {
     if (selectedSeatIds.length === 0) {
       openErrorNotification(
@@ -151,26 +166,58 @@ const BookingPage = () => {
       return;
     }
 
-    apiNotification.success({
-      message: 'Đặt vé thành công',
-      description: `Giữ vé thành công. Mã vé của bạn là: ${
-        bookingResult.data.booking_code
-      }.\n ${JSON.stringify(bookingResult.data, null, 2)}`,
-      duration: 5,
-    });
+    // đặt vé thành công:
+    const bookingCode = bookingResult.data?.booking_code;
+    const emailOtp = bookingResult.data?.email;
 
-    apiNotification.info({
-      message: 'Chuyển đến trang thanh toán',
-      description: 'Bạn sẽ được chuyển đến trang thanh toán trong giây lát.',
-      duration: 3,
-    });
+    // show modal xac nhan otp
+    setIsModalOpen(true);
+    let isVerified = false;
 
-    setTimeout(() => {
-      navigate(
-        `/payments?bookingCode=${bookingResult.data.booking_code}&email=${email}&tripId=${trip.id}`,
-        { state: { booking: bookingResult.data, trip } }
+    try {
+      const { responseApi } = await verifyOtp({ email: emailOtp, code: otp });
+      console.log('OTP verify response:', responseApi);
+
+      isVerified = responseApi?.success;
+
+      if (isVerified) {
+        apiNotification.success({
+          message: 'Đặt vé thành công',
+          description: `Giữ vé thành công. Mã vé của bạn là: ${
+            bookingResult.data.booking_code
+          }.\n ${JSON.stringify(bookingResult.data, null, 2)}`,
+          duration: 5,
+        });
+
+        apiNotification.info({
+          message: 'Chuyển đến trang thanh toán',
+          description:
+            'Bạn sẽ được chuyển đến trang thanh toán trong giây lát.',
+          duration: 3,
+        });
+
+        setTimeout(() => {
+          navigate(
+            `/payments?bookingCode=${bookingResult.data.booking_code}&email=${email}&tripId=${trip.id}`,
+            { state: { booking: bookingResult.data, trip } }
+          );
+        }, 3000);
+      } else {
+        openErrorNotification(
+          'Xác thực OTP thất bại',
+          'Mã OTP không hợp lệ. Vui lòng thử lại.'
+        );
+      }
+    } catch (error) {
+      console.error('OTP verify error:', error);
+      openErrorNotification(
+        'Xác thực OTP thất bại',
+        'Có lỗi xảy ra khi xác thực OTP. Vui lòng thử lại.'
       );
-    }, 3000);
+    } finally {
+      setIsModalOpen(false);
+      setOtp('');
+    }
 
     // alert('Thong tin dat ve: ' + JSON.stringify(bookingInfo, null, 2));
   };
@@ -190,6 +237,7 @@ const BookingPage = () => {
   return (
     <>
       {contextHolder}
+      <ModalConfirm isModalOpen={isModalOpen} setIsModalOpen={setIsModalOpen} onSubmit={handleBookingInfo} />
       <Container maxWidth="lg" style={{ marginBottom: '20px' }}>
         <h2>Booking Page for Trip ID: {tripId}</h2>
 

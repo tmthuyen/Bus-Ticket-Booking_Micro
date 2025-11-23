@@ -20,95 +20,7 @@ import currencyUtils from '../../../utils/currencyUtils';
 
 const parseTicketInfo = (ticketInfo) => {
   if (!ticketInfo) return null;
-
-  // {
-  //       "id": "124ef4a1-e0e0-4a57-94a0-a4fd5037856a",
-  //       "trip_id": 1,
-  //       "booking_code": "BK221125JIBQ",
-  //       "full_name": "Tran Minh Thuyen",
-  //       "phone": "0373436163",
-  //       "email": "tranthuyen2222@gmail.com",
-  //       "status": "PENDING",
-  //       "seat_quantity": 5,
-  //       "total_price": 4250000.0,
-  //       "created_at": "2025-11-22T08:34:38",
-  //       "updated_at": "2025-11-22T08:34:38",
-  //       "seat_assignments": [
-  //           {
-  //               "seat_number": "A05",
-  //               "id": "56137186-f710-47a2-aaa7-4c1ead831089",
-  //               "booking_id": "124ef4a1-e0e0-4a57-94a0-a4fd5037856a",
-  //               "trip_id": 1,
-  //               "status": "RESERVED",
-  //               "created_at": "2025-11-22T08:34:38"
-  //           },
-  //           {
-  //               "seat_number": "A07",
-  //               "id": "70bdcab1-59ab-4afa-a3a2-5d88271b354f",
-  //               "booking_id": "124ef4a1-e0e0-4a57-94a0-a4fd5037856a",
-  //               "trip_id": 1,
-  //               "status": "RESERVED",
-  //               "created_at": "2025-11-22T08:34:38"
-  //           },
-  //           {
-  //               "seat_number": "A03",
-  //               "id": "8a17f5a5-2082-4c91-8fde-558d9e56c034",
-  //               "booking_id": "124ef4a1-e0e0-4a57-94a0-a4fd5037856a",
-  //               "trip_id": 1,
-  //               "status": "RESERVED",
-  //               "created_at": "2025-11-22T08:34:38"
-  //           },
-  //           {
-  //               "seat_number": "A04",
-  //               "id": "b46b7183-4651-4860-8a3c-162547c209fa",
-  //               "booking_id": "124ef4a1-e0e0-4a57-94a0-a4fd5037856a",
-  //               "trip_id": 1,
-  //               "status": "RESERVED",
-  //               "created_at": "2025-11-22T08:34:38"
-  //           },
-  //           {
-  //               "seat_number": "A06",
-  //               "id": "ef86703a-b523-4510-a239-3e388cabbd08",
-  //               "booking_id": "124ef4a1-e0e0-4a57-94a0-a4fd5037856a",
-  //               "trip_id": 1,
-  //               "status": "RESERVED",
-  //               "created_at": "2025-11-22T08:34:38"
-  //           }
-  //       ],
-  //       "trip": {
-  //           "id": 1,
-  //           "route_id": 1,
-  //           "bus_id": 3,
-  //           "departure_time": "2025-12-12T13:00:00",
-  //           "arrival_time": "2025-12-13T08:10:00",
-  //           "created_at": "2025-11-12T17:21:42",
-  //           "updated_at": "2025-11-12T17:21:42",
-  //           "status": "SCHEDULED",
-  //           "route": {
-  //               "id": 1,
-  //               "origin": "TP. Hồ Chí Minh",
-  //               "origin_code": "tp-ho-chi-minh",
-  //               "destination": "Đà Nẵng",
-  //               "destination_code": "da-nang",
-  //               "base_price": 850000.0,
-  //               "distance_km": 960.0,
-  //               "estimated_duration": 1150
-  //           },
-  //           "bus": {
-  //               "bus_model_id": 1,
-  //               "plate_number": "51B-123.45",
-  //               "created_at": "2025-11-12T17:21:42",
-  //               "id": 3,
-  //               "status": "ACTIVE",
-  //               "updated_at": "2025-11-12T17:21:42"
-  //           }
-  //       }
-  //   }
-
-  // if (!ticketInfo.trip || !ticketInfo.trip.route || !ticketInfo.trip.bus) {
-  //   return null;
-  // }
-
+ 
   const info = {
     id: ticketInfo.id,
     bookingCode: ticketInfo.booking_code,
@@ -137,7 +49,7 @@ const LookupTicketPage = () => {
   const dispatch = useDispatch();
   const [messageAnt, contextHolder] = message.useMessage();
 
-  // store state 
+  // store state
   const {
     ticketInfo,
     loading: loadingLookup,
@@ -184,7 +96,6 @@ const LookupTicketPage = () => {
 
   useEffect(() => {
     setTicketFetched(null);
-
   }, [email, bookingCode]);
 
   const onFinishFailed = (errorInfo) => {
@@ -269,11 +180,11 @@ const LookupTicketPage = () => {
             </Form>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 6 }} sx={{ marginTop: 4 }}>
-            {success && ticketFetched && (
+          {success && ticketFetched && (
+            <Grid size={{ xs: 12, md: 6 }} sx={{ marginTop: 4 }}>
               <TicketCard ticketData={parseTicketInfo(ticketFetched)} />
-            )}
-          </Grid>
+            </Grid>
+          )}
         </Grid>
       </Container>
     </>
@@ -281,7 +192,7 @@ const LookupTicketPage = () => {
 };
 export default LookupTicketPage;
 
-const TicketCard = ({ ticketData }) => {
+export const TicketCard = ({ ticketData }) => {
   if (!ticketData)
     return (
       <>
@@ -289,21 +200,24 @@ const TicketCard = ({ ticketData }) => {
           Không có thông tin vé để hiển thị.
         </Typography>
       </>
-    ); 
+    );
 
-  const departimeVN = formatVNDate(ticketData.departureTime, { withTime: true }) || "—";
-  const arrivaltimeVN = formatVNDate(ticketData.arrivalTime, {
-    withTime: true,
-  }) || "—";
-  const statusLabel = BOOKING_STATUS[ticketData.status]?.label || ticketData.status;
+  const departimeVN =
+    formatVNDate(ticketData.departureTime, { withTime: true }) || '—';
+  const arrivaltimeVN =
+    formatVNDate(ticketData.arrivalTime, {
+      withTime: true,
+    }) || '—';
+  const statusLabel =
+    BOOKING_STATUS[ticketData.status]?.label || ticketData.status;
   let statusChip = null;
-  if (ticketData.status === BOOKING_STATUS.PENDING.value ) {
+  if (ticketData.status === BOOKING_STATUS.PENDING.value) {
     statusChip = <Chip label={statusLabel} color="warning" />;
-  } else if (ticketData.status === BOOKING_STATUS.PAID.value ) {
+  } else if (ticketData.status === BOOKING_STATUS.PAID.value) {
     statusChip = <Chip label={statusLabel} color="success" />;
-  } else if (ticketData.status === BOOKING_STATUS.CANCELLED.value ) {
+  } else if (ticketData.status === BOOKING_STATUS.CANCELLED.value) {
     statusChip = <Chip label={statusLabel} color="error" />;
-  } else if (ticketData.status === BOOKING_STATUS.REFUNDED.value ) {
+  } else if (ticketData.status === BOOKING_STATUS.REFUNDED.value) {
     statusChip = <Chip label={statusLabel} color="info" />;
   } else {
     statusChip = <Chip label={statusLabel} />;
@@ -320,7 +234,11 @@ const TicketCard = ({ ticketData }) => {
           padding: '16px',
         }}
       >
-        <Typography variant="h6" fontWeight={600} style={{ textAlign: 'center' }}>
+        <Typography
+          variant="h6"
+          fontWeight={600}
+          style={{ textAlign: 'center' }}
+        >
           Thông tin vé
         </Typography>
         <Table size="small" sx={{ mt: 1 }}>

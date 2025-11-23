@@ -10,8 +10,8 @@ import RoutePage from '../components/pages/Route';
 import LookupTicketPage from '../components/pages/Ticket/LookupTicketPage';
 import BookingPage from '../components/pages/Booking/BookingPage';
 import PaymentPage from '../components/pages/Payment/PaymentPage';
-import BookingSuccess from '../components/pages/Booking/BookingSuccess';
-import PaymentReturn from '../components/pages/Payment/PaymentReturn';
+import BookingResult from '../components/pages/Booking/BookingResult';
+import PaymentReturn from '../components/pages/Payment/PaymentReturn'; 
 
 export const routes = [
   {
@@ -60,8 +60,8 @@ export const routes = [
         element: <PaymentReturn />
       },
       {
-        path: 'booking-success',
-        element: <BookingSuccess />,
+        path: 'booking-result',
+        element: <BookingResult />,
       },
       {
         path: 'lookup-ticket',

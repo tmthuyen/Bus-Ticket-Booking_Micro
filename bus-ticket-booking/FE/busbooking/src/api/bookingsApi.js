@@ -32,12 +32,24 @@ export const getSeatsBookedByTripApi = async (trip_id) => {
   }; // tuỳ backend trả data gì
 };
 
-// tra cuu ve
+// tra cuu ve bang booking_code va email
 export const getTicketByCodeAndEmailApi = async (code, email) => {
   const res = await api.get(
     `${PREFIX_SERVICE}/search/${email}/${code}`
   );
   // console.log("getTicketByCodeAndEmail: ", res.data);
+  return {
+    responseApi: res.data,
+  }; // tuỳ backend trả data gì
+};
+
+// tra cuu ve bang booking_code va email
+export const getTicketByBookingId = async (bookingId) => {
+  const res = await api.get(
+    `${PREFIX_SERVICE}/${bookingId}`
+  );
+  
+  console.log("getTicketByBookingId: ", res);
   return {
     responseApi: res.data,
   }; // tuỳ backend trả data gì
