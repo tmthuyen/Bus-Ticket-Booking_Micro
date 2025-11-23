@@ -389,7 +389,7 @@ class PaymentService:
             
             if event_type == "payment_success":
                 # Gọi endpoint confirm của booking service
-                booking_confirm_url = f"{settings.booking_service_url}/bookings/{booking_id}/confirm"
+                booking_confirm_url = f"{settings.booking_service_url}/{booking_id}/confirm"
                 
                 logger.info(f"Calling Booking Service to confirm booking {booking_id} at {booking_confirm_url}")
                 
