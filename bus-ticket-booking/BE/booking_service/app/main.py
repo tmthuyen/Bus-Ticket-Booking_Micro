@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.encoders import jsonable_encoder 
 from sqlalchemy.orm import Session 
-from datetime import timedelta, timezone
+from datetime import timedelta
 from typing import Annotated 
 import logging
 
@@ -320,15 +320,15 @@ def confirm_booking(
     global producer
     if producer and producer.channel:
         try:
-            
-            
             seat_numbers = [seat.seat_number for seat in updated_booking.seat_assignments]
             
             # giờ Việt Nam (UTC+7)
             vn_timezone = timezone(timedelta(hours=7))
             booking_time_vn = updated_booking.created_at.replace(tzinfo=timezone.utc).astimezone(vn_timezone)
             
-            producer.publish_booking_confirmation(
+            logger.info(f"Attempting to publish booking confirmation for {updated_booking.booking_code}")
+            
+            result = producer.publish_booking_confirmation(
                 to_email=updated_booking.email,
                 booking_code=updated_booking.booking_code,
                 customer_name=updated_booking.full_name,
@@ -337,9 +337,16 @@ def confirm_booking(
                 total_price=float(updated_booking.total_price),
                 booking_time=booking_time_vn.strftime("%d/%m/%Y %H:%M:%S")
             )
-            logger.info(f"Published booking confirmation event for {updated_booking.booking_code}")
+            
+            if result:
+                logger.info(f"✅ Published booking confirmation event for {updated_booking.booking_code}")
+            else:
+                logger.error(f"❌ Failed to publish booking confirmation (returned False) for {updated_booking.booking_code}")
+                
         except Exception as e:
-            logger.error(f"Failed to publish booking confirmation: {e}")
+            logger.error(f"❌ Exception while publishing booking confirmation: {e}", exc_info=True)
+    else:
+        logger.warning(f"Cannot send confirmation email - RabbitMQ producer not available")
     
     return response.successResponse(
         msg="Xác nhận booking thành công",
