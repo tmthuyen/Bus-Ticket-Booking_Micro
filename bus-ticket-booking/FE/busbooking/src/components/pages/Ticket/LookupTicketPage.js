@@ -17,6 +17,7 @@ import { fetchTicketByCodeAndEmailAction } from '../../../store/actions/bookings
 import { BOOKING_STATUS } from '../../../constants';
 import { formatVNDate } from '../../../utils/formatTime';
 import currencyUtils from '../../../utils/currencyUtils';
+import { useGlobalLoading } from '../../../context/LoadingContext';
 
 const parseTicketInfo = (ticketInfo) => {
   if (!ticketInfo) return null;
@@ -62,15 +63,19 @@ const LookupTicketPage = () => {
   const [ticketFetched, setTicketFetched] = useState(null);
 
   const [submitLookup, setSubmitLookup] = useState(false);
+  const { setSpinning } = useGlobalLoading();
 
   const onFinish = async (values) => {
+    setSpinning(true);
+    setSubmitLookup(true);
+
     const { booking_code, email } = values;
     console.log('Finish form lookup ticket:', values);
     setBookingCode(booking_code);
     setEmail(email);
-    setSubmitLookup(true);
     // dispatch action to lookup ticket
     await dispatch(fetchTicketByCodeAndEmailAction(booking_code, email));
+    setSpinning(false);
   };
 
   useEffect(() => {
@@ -210,6 +215,8 @@ export const TicketCard = ({ ticketData }) => {
     }) || '—';
   const statusLabel =
     BOOKING_STATUS[ticketData.status]?.label || ticketData.status;
+  const bookedTimeVN = formatVNDate(ticketData?.createdAt, { withTime: true });
+
   let statusChip = null;
   if (ticketData.status === BOOKING_STATUS.PENDING.value) {
     statusChip = <Chip label={statusLabel} color="warning" />;
@@ -252,6 +259,17 @@ export const TicketCard = ({ ticketData }) => {
                 sx={{ borderBottom: 'none', fontWeight: 500 }}
               >
                 {ticketData?.bookingCode}
+              </TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell sx={{ borderBottom: 'none', fontWeight: 600 }}>
+                Thời gian đặt vé
+              </TableCell>
+              <TableCell
+                align="right"
+                sx={{ borderBottom: 'none', fontWeight: 500 }}
+              >
+                {bookedTimeVN}
               </TableCell>
             </TableRow>
             <TableRow>

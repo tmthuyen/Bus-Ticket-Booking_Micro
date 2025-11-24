@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.encoders import jsonable_encoder 
 from sqlalchemy.orm import Session 
-from datetime import timedelta, timezone
+from datetime import timedelta
 from typing import Annotated 
 import logging
 

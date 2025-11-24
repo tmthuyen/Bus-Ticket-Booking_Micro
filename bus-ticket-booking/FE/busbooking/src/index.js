@@ -8,6 +8,7 @@ import './index.css';
 import App from './App';
 import theme from './config/themeMui';
 import store from './store/store';
+import { LoadingProvider } from './context/LoadingContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -16,7 +17,9 @@ root.render(
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AntApp>
-          <App />
+          <LoadingProvider>
+            <App />
+          </LoadingProvider>
         </AntApp>
       </ThemeProvider>
     </Provider>

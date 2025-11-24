@@ -16,13 +16,14 @@ import {
   Typography,
 } from '@mui/material';
 import BookingSummary from '../Booking/BookingSummary';
-import { API_DOMAIN, PAYMENT_METHOD } from '../../../constants';
+import { PAYMENT_METHOD } from '../../../constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { fetchBookingByCodeAction } from '../../../store/actions/bookingsAction';
 import { fetchTripById } from '../../../store/actions/tripsAction';
 import api, { parseAxiosError } from '../../../api/api';
 import { message } from 'antd';
+import { useGlobalLoading } from '../../../context/LoadingContext';
 
 const PaymentPage = () => {
   // hooks
@@ -30,6 +31,9 @@ const PaymentPage = () => {
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
   const [messageAnt, contextHolder] = message.useMessage();
+
+  // loading global state
+  const { setSpinning} = useGlobalLoading();
 
   // reducer state
   const { tripById: tripChosen } = useSelector((state) => state.trips);
@@ -99,10 +103,9 @@ const PaymentPage = () => {
 
         console.log('Payment payload MOMO:', payloadPayment);
         setLoadingPayment(true);
+        setSpinning(true);
 
-      try {
-        
-
+      try { 
         const resp = await api.post(
           '/payments/payments/momo/create',
           payloadPayment
@@ -111,7 +114,7 @@ const PaymentPage = () => {
         const { data, message } = resp.data;
 
         if (!data || !data.payment_url) {
-          console.error('Invalid payment URL in response:', resp.data);
+          console.error('Invalid payment URL in response:', resp.data, message);
           return;
         }
 
@@ -128,10 +131,11 @@ const PaymentPage = () => {
         console.error('Error creating MOMO payment:', parseAxiosError(error));
         messageAnt.error(
           `Lỗi khi tạo thanh toán MOMO: ${parseAxiosError(error).message || error.message}`
-        );
+        ); 
         
       } finally {
         setLoadingPayment(false);
+        setSpinning(false);
       }
 
     } else if (method === PAYMENT_METHOD.VNPAY) {
