@@ -32,15 +32,16 @@ def get_otp_by_id(db: Session, otp_id: str) -> models.OTP:
     """Lấy OTP theo ID"""
     return db.query(models.OTP).filter(models.OTP.id == otp_id).first()
 
-def get_valid_otp(db: Session, email: str, otp_code: str) -> models.OTP:
+def get_valid_otp(db: Session, email: str, booking_code: str, otp_code: str) -> models.OTP:
     """
-    Lấy OTP hợp lệ (pending, chưa hết hạn) theo email và mã OTP
+    Lấy OTP hợp lệ (pending, chưa hết hạn) theo email, booking_code và mã OTP
     """
     current_time = datetime.datetime.utcnow()
     return db.query(models.OTP)\
         .filter(
             and_(
                 models.OTP.email == email,
+                models.OTP.booking_code == booking_code,
                 models.OTP.otp == otp_code,
                 models.OTP.status == models.OTPStatus.PENDING,
                 models.OTP.expiry_time > current_time

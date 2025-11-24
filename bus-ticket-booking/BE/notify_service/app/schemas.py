@@ -12,17 +12,9 @@ class OTPCreate(BaseModel):
 class OTPVerify(BaseModel):
     """Schema xác thực OTP"""
     email: EmailStr = Field(..., description="Email đã nhận OTP")
+    booking_code: str = Field(..., min_length=1, description="Mã booking cần xác thực")
     otp: str = Field(..., min_length=6, max_length=6, description="Mã OTP 6 chữ số")
     
-# class NotificationBase(BaseModel):
-#     username: str
-#     code: str
-#     expires_at: datetime
-#     used_at: Optional[datetime] = None
-#     created_at: Optional[datetime] = None
-#     class Config:
-#         from_attributes  = True
-
 class OTPResponse(BaseModel):
     """Schema trả về thông tin OTP"""
     id: str
