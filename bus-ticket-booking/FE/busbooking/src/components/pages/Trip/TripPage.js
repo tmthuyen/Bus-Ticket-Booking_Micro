@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { fetchTripsByRoute } from '../../../store/actions/tripsAction';
 import { Container, Grid } from '@mui/material';
 import TripList from './TripList';
+import { todayVN } from '../../../utils/formatTime';
 
 const TripPage = () => {
   const [searchParams] = useSearchParams();
@@ -20,10 +21,13 @@ const TripPage = () => {
 
   const handleChooseTrip = (trip) => {
     console.log('Choose trip:', trip);
-    navigate(`/bookings/${trip.id}?origin=${origin_code}&destination=${destination_code}&from_date=${from_date}`, {
-      state: { trip: trip, from_date: from_date },
-    });
-  }
+    navigate(
+      `/bookings/${trip.id}?origin=${origin_code}&destination=${destination_code}&from_date=${from_date}`,
+      {
+        state: { trip: trip, from_date: from_date },
+      }
+    );
+  };
 
   const lastParamsRef = useRef(null);
 
@@ -39,6 +43,10 @@ const TripPage = () => {
     }
 
     lastParamsRef.current = key;
+    if (from_date < todayVN()) {
+      console.log('From date is in the past, skip fetch trips');
+      return;
+    }
     dispatch(fetchTripsByRoute(origin_code, destination_code, from_date));
   }, [origin_code, destination_code, from_date, dispatch]);
 
@@ -48,15 +56,25 @@ const TripPage = () => {
         maxWidth="lg"
         style={{ marginTop: '20px', marginBottom: '20px' }}
       >
-        <Grid container spacing={2}>
-          <TripList
-            title={origin_code.toUpperCase() + ' - ' + destination_code.toUpperCase()}
-            subtitleDate={from_date}
-            trips={tripsByRoute}
-            onBook={(t) => handleChooseTrip(t)}
-            onChooseSeats={(t) => handleChooseTrip(t)}
-            loading={loadingTrips}
-          />
+        <Grid container spacing={2} justifyContent={'center'}>
+          {from_date < todayVN() ? (
+            <p style={{ color: 'red' }}>
+              From date is in the past. Please select a valid date.
+            </p>
+          ) : (
+            <TripList
+              title={
+                origin_code.toUpperCase() +
+                ' - ' +
+                destination_code.toUpperCase()
+              }
+              subtitleDate={from_date}
+              trips={tripsByRoute}
+              onBook={(t) => handleChooseTrip(t)}
+              onChooseSeats={(t) => handleChooseTrip(t)}
+              loading={loadingTrips}
+            />
+          )}
         </Grid>
       </Container>
     </>

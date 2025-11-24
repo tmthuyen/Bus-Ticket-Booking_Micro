@@ -21,6 +21,15 @@ export const createBookingApi = async (body) => {
   }; // tuỳ backend trả data gì
 };
 
+export const cancelBookingApi = async (bookingId) => {
+  const res = await api.put(`${PREFIX_SERVICE}/${bookingId}/cancel`, { 
+  });
+  // console.log("getRoutes: ", res.data);
+  return {
+    responseApi: res.data,
+  }; // tuỳ backend trả data gì
+};
+
 // lay thong tin ghe da dat cua 1 chuyen di
 export const getSeatsBookedByTripApi = async (trip_id) => {
   const res = await api.get(

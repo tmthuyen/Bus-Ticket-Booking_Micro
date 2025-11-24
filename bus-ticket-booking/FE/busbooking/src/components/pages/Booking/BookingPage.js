@@ -22,6 +22,7 @@ import { resendOtp, verifyOtp } from '../../../api/notificationApi';
 import { parseAxiosError } from '../../../api/api';
 import { validateOtp } from '../../../utils/otpUtil';
 import { useGlobalLoading } from '../../../context/LoadingContext';
+import { cancelBookingApi } from '../../../api/bookingsApi';
 
 const BookingPage = () => {
   // hooks
@@ -261,6 +262,8 @@ const BookingPage = () => {
     if (!bookingResult) return;
 
     setLoadingBooking(true);
+    // setSpinning(true);
+    setErrorOtpMessage(null);
 
     try {
       const payloadResend = {
@@ -282,6 +285,7 @@ const BookingPage = () => {
       );
     } finally {
       setLoadingBooking(false);
+      // setSpinning(false);
       setOtp('');
       // setErrorOtpMessage(null);
       setIsModalOpen(true);
@@ -289,8 +293,32 @@ const BookingPage = () => {
   };
 
   // huy dat ve
-  const handleCancelBooking = (navigate) => {
-    navigate(-1); // quay ve trang truoc do
+  const handleCancelBooking = async (navigate) => {
+    
+    setSpinning(true);
+    try {
+      if (bookingResult && bookingResult.data) {
+        console.log('Cancelling booking with code:', bookingResult);
+        const bookingId = bookingResult?.data?.booking_id;
+        // goi api huy booking neu can thiet
+        
+        const { responseApi } = await cancelBookingApi(bookingId); 
+
+        notification.info({
+          message: 'Hủy đặt vé thành công',
+          description: `Đặt vé với mã ${bookingResult.data.booking_code} đã được hủy.`,
+          duration: 3,
+        });
+        console.log('Cancel booking with code:', bookingResult.data.booking_code, 'response:', responseApi);
+      }
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+    } finally {
+      setSpinning(false);
+      // dieu huong ve trang truoc do
+      
+      navigate(-1); // quay ve trang truoc do
+    }
   };
 
   if (!trip) {
@@ -317,6 +345,7 @@ const BookingPage = () => {
         onSubmit={onSubmitOtp}
         onResend={handleResendOtp}
         resendLoading={loadingBooking}
+        onCancelBooking={() => handleCancelBooking(navigate)}
       />
       <Container maxWidth="lg" style={{ marginBottom: '20px' }}>
         <h2>Booking Page for Trip ID: {tripId}</h2>

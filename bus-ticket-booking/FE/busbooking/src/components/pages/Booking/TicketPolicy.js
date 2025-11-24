@@ -9,23 +9,13 @@ const TicketPolicy = () => {
       </Typography>
       <Typography variant="body1" sx={{ mt: 1 }}>
         Quý khách vui lòng Đăng ký/Đăng nhập tài khoản để nhận chương trình
-        khuyến mãi.
+        khuyến mãi về sau.
       </Typography>
       <Typography variant="body1" sx={{ mt: 1 }}>
         (*) Quý khách vui lòng có mặt tại bến xuất phát của xe trước ít nhất 30
         phút giờ xe khởi hành, mang theo thông báo đã thanh toán vé thành công
-        có chứa mã vé được gửi từ hệ thống FUTA BUS LINES. Vui lòng liên hệ
-        Trung tâm tổng đài 1900 6067 để được hỗ trợ.
-      </Typography>
-      <Typography variant="body1" sx={{ mt: 1 }}>
-        (*) Nếu quý khách có nhu cầu trung chuyển, vui lòng liên hệ Tổng đài
-        trung chuyển 1900 6918 trước khi đặt vé. Chúng tôi không đón/trung
-        chuyển tại những điểm xe trung chuyển không thể tới được.
-      </Typography>
-      <Typography variant="body1" sx={{ mt: 1 }}>
-        (*) Nếu quý khách có nhu cầu di chuyển chặng đường ngắn hơn so với hành
-        trình, vui lòng gọi Tổng đài 1900 6067 để được hưởng chính sách giá vé
-        tốt nhất.
+        có chứa mã vé được gửi từ hệ thống BUS TICKET BOOKING. Vui lòng liên hệ
+        Trung tâm tổng đài XXX để được hỗ trợ.
       </Typography>
     </>
   );

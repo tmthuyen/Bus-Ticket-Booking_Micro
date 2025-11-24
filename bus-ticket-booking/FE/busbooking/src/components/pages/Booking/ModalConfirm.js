@@ -1,5 +1,6 @@
 import { Box, Grid } from '@mui/material';
 import { Button, Input, Modal } from 'antd';
+import { useNavigate } from 'react-router-dom';
 // import { useState } from 'react';
 
 const ModalConfirm = ({
@@ -11,10 +12,31 @@ const ModalConfirm = ({
   setOtp,
   onResend,
   resendLoading,
-}) => {
+  onCancelBooking,
+}) => { 
+  const [modalConfirm, contextHolder] = Modal.useModal();
+
   const handleCancel = () => {
-    // setIsModalOpen(false);
-    // onCancel
+    modalConfirm.confirm({
+      title: 'Hủy xác thực OTP?',
+      content:
+        'Nếu hủy, việc đặt vé có thể không được giữ nữa. Bạn có chắc muốn hủy?',
+      okText: 'Hủy đặt vé',
+      cancelText: 'Tiếp tục nhập OTP',
+      onOk: () => {
+        // đóng modal
+        setIsModalOpen(false);
+        // reset OTP
+        setOtp('');
+        // cho parent huỷ booking + điều hướng
+        onCancelBooking && onCancelBooking();
+        // navigate('/');
+      },
+      onCancel: () => {
+        // không làm gì, giữ modal
+      },
+    });
+    console.log('Modal closed');
   };
 
   const handleInput = (value) => {
@@ -38,10 +60,13 @@ const ModalConfirm = ({
   };
 
   return (
+    <>
+    {contextHolder}
     <Modal
       title="Xác nhận OTP với thông tin đặt vé"
       open={isModalOpen}
-      closable={false} // ẩn nút X góc trên
+      closable={true} // ẩn nút X góc trên
+      onCancel={handleCancel}
       footer={[
         <Button key="resend" onClick={onResend} loading={resendLoading}>
           Gửi lại mã
@@ -89,6 +114,7 @@ const ModalConfirm = ({
         )}
       </Grid>
     </Modal>
+    </>
   );
 };
 
