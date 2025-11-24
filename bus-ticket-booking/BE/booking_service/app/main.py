@@ -70,9 +70,10 @@ def startup_event():
     producer = rabbitmq_producer.get_producer(rabbitmq_config)
     
     if producer and producer.channel:
-        logger.info("RabbitMQ Producer initialized successfully")
+        logger.info("✅ RabbitMQ Producer initialized successfully - Email notifications via RabbitMQ enabled")
     else:
-        logger.warning("RabbitMQ Producer failed to initialize - falling back to HTTP notifications")
+        logger.warning("⚠️ RabbitMQ Producer failed to initialize - Email notifications will NOT be sent")
+        logger.warning("⚠️ Please check RabbitMQ service status and restart booking service if needed")
     
     # Set producer instance cho scheduler
     scheduler.set_producer(producer)

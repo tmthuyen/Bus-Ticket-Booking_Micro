@@ -26,24 +26,32 @@ class RabbitMQProducer:
         self.connection = None
         self.channel = None
 
-    def connect(self):
-        """Establish connection to RabbitMQ"""
-        try:
-            credentials = pika.PlainCredentials(self.username, self.password)
-            parameters = pika.ConnectionParameters(
-                host=self.host,
-                port=self.port,
-                credentials=credentials,
-                heartbeat=600,
-                blocked_connection_timeout=300,
-            )
-            self.connection = pika.BlockingConnection(parameters)
-            self.channel = self.connection.channel()
-            logger.info(f"Producer connected to RabbitMQ at {self.host}:{self.port}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to connect to RabbitMQ: {e}")
-            return False
+    def connect(self, max_retries=5, retry_delay=2):
+        """Establish connection to RabbitMQ with retry logic"""
+        import time
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                credentials = pika.PlainCredentials(self.username, self.password)
+                parameters = pika.ConnectionParameters(
+                    host=self.host,
+                    port=self.port,
+                    credentials=credentials,
+                    heartbeat=600,
+                    blocked_connection_timeout=300,
+                )
+                self.connection = pika.BlockingConnection(parameters)
+                self.channel = self.connection.channel()
+                logger.info(f"Producer connected to RabbitMQ at {self.host}:{self.port} (attempt {attempt}/{max_retries})")
+                return True
+            except Exception as e:
+                logger.warning(f"Failed to connect to RabbitMQ (attempt {attempt}/{max_retries}): {e}")
+                if attempt < max_retries:
+                    logger.info(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    logger.error(f"Failed to connect to RabbitMQ after {max_retries} attempts")
+                    return False
 
     def publish_message(
         self,
