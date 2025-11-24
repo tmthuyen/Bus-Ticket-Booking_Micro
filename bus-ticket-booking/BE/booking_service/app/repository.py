@@ -72,7 +72,7 @@ def create_booking(
     """
     # Tạo booking với thời gian giữ chỗ 1 tiếng
     current_time = dt.utcnow()
-    hold_until = current_time + timedelta(hours=1)
+    hold_until = current_time + timedelta(hours=2)
     
     db_booking = models.Booking(
         trip_id=trip_id,
@@ -150,9 +150,9 @@ def cancel_booking(db: Session, booking_id: str) -> models.Booking:
     """Hủy booking và giải phóng ghế"""
     return update_booking_status(db, booking_id, models.BookingStatus.CANCELLED)
 
-def refund_booking(db: Session, booking_id: str) -> models.Booking:
-    """Hoàn tiền booking"""
-    return update_booking_status(db, booking_id, models.BookingStatus.REFUNDED)
+# def refund_booking(db: Session, booking_id: str) -> models.Booking:
+#     """Hoàn tiền booking"""
+#     return update_booking_status(db, booking_id, models.BookingStatus.REFUNDED)
 
 
 def get_booked_seats_by_trip(db: Session, trip_id: int) -> List[str]:
