@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.encoders import jsonable_encoder 
 from sqlalchemy.orm import Session 
-from datetime import timedelta
+from datetime import timedelta, timezone
 from typing import Annotated 
 import logging
 
@@ -22,7 +22,7 @@ bg_scheduler = BackgroundScheduler()
 bg_scheduler.add_job(
     scheduler.auto_cancel_expired_bookings,
     'interval',
-    minutes=1,  # Chạy mỗi phút
+    seconds=30, # Chạy mỗi 30 giây
     id='auto_cancel_expired_bookings',
     replace_existing=True
 )
@@ -74,9 +74,12 @@ def startup_event():
     else:
         logger.warning("RabbitMQ Producer failed to initialize - falling back to HTTP notifications")
     
+    # Set producer instance cho scheduler
+    scheduler.set_producer(producer)
+    
     # Start background scheduler for auto-cancel expired bookings
     bg_scheduler.start()
-    logger.info("Background Scheduler started - Auto-cancel expired bookings every 1 minute")
+    logger.info("Background Scheduler started - Auto-cancel expired bookings every 30 seconds")
 
 
 @app.on_event("shutdown")
@@ -317,7 +320,14 @@ def confirm_booking(
     global producer
     if producer and producer.channel:
         try:
+            
+            
             seat_numbers = [seat.seat_number for seat in updated_booking.seat_assignments]
+            
+            # giờ Việt Nam (UTC+7)
+            vn_timezone = timezone(timedelta(hours=7))
+            booking_time_vn = updated_booking.created_at.replace(tzinfo=timezone.utc).astimezone(vn_timezone)
+            
             producer.publish_booking_confirmation(
                 to_email=updated_booking.email,
                 booking_code=updated_booking.booking_code,
@@ -325,7 +335,7 @@ def confirm_booking(
                 trip_info=f"Trip ID: {updated_booking.trip_id}",
                 seat_numbers=seat_numbers,
                 total_price=float(updated_booking.total_price),
-                booking_time=updated_booking.created_at.strftime("%d/%m/%Y %H:%M:%S")
+                booking_time=booking_time_vn.strftime("%d/%m/%Y %H:%M:%S")
             )
             logger.info(f"Published booking confirmation event for {updated_booking.booking_code}")
         except Exception as e:
@@ -389,53 +399,53 @@ def cancel_booking(
         }
     )
 
-@app.put("/{booking_id}/refund", tags=["bookings"])
-def refund_booking(
-    booking_id: str,
-    db: Session = Depends(get_db)
-):
-    """
-    Hoàn tiền cho booking CANCELLED -> REFUNDED
-    """
-    db_booking = repository.get_booking_by_id(db, booking_id)
+# @app.put("/{booking_id}/refund", tags=["bookings"])
+# def refund_booking(
+#     booking_id: str,
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Hoàn tiền cho booking CANCELLED -> REFUNDED
+#     """
+#     db_booking = repository.get_booking_by_id(db, booking_id)
     
-    if not db_booking:
-        return response.errorResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            msg="Không tìm thấy booking"
-        )
+#     if not db_booking:
+#         return response.errorResponse(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             msg="Không tìm thấy booking"
+#         )
     
-    if db_booking.status != models.BookingStatus.CANCELLED:
-        return response.errorResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            msg="Chỉ có thể hoàn tiền cho booking đã hủy"
-        )
+#     if db_booking.status != models.BookingStatus.CANCELLED:
+#         return response.errorResponse(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             msg="Chỉ có thể hoàn tiền cho booking đã hủy"
+#         )
     
-    # Hoàn tiền
-    updated_booking = repository.refund_booking(db, booking_id)
+#     # Hoàn tiền
+#     updated_booking = repository.refund_booking(db, booking_id)
     
-    # Gửi email hoàn tiền qua RabbitMQ
-    global producer
-    if producer and producer.channel:
-        try:
-            producer.publish_booking_refund(
-                to_email=updated_booking.email,
-                booking_code=updated_booking.booking_code,
-                customer_name=updated_booking.full_name,
-                refund_amount=float(updated_booking.total_price)
-            )
-            logger.info(f"Published booking refund event for {updated_booking.booking_code}")
-        except Exception as e:
-            logger.error(f"Failed to publish booking refund: {e}")
+#     # Gửi email hoàn tiền qua RabbitMQ
+#     global producer
+#     if producer and producer.channel:
+#         try:
+#             producer.publish_booking_refund(
+#                 to_email=updated_booking.email,
+#                 booking_code=updated_booking.booking_code,
+#                 customer_name=updated_booking.full_name,
+#                 refund_amount=float(updated_booking.total_price)
+#             )
+#             logger.info(f"Published booking refund event for {updated_booking.booking_code}")
+#         except Exception as e:
+#             logger.error(f"Failed to publish booking refund: {e}")
     
-    return response.successResponse(
-        msg="Hoàn tiền thành công",
-        data={
-            "booking_id": updated_booking.id,
-            "booking_code": updated_booking.booking_code,
-            "status": updated_booking.status.value
-        }
-    )
+#     return response.successResponse(
+#         msg="Hoàn tiền thành công",
+#         data={
+#             "booking_id": updated_booking.id,
+#             "booking_code": updated_booking.booking_code,
+#             "status": updated_booking.status.value
+#         }
+#     )
 
 @app.get("/trip/{trip_id}/booked-seats", tags=["bookings"])
 def get_booked_seats_by_trip(

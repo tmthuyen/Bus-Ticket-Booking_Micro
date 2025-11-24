@@ -100,8 +100,6 @@ Mã đặt chỗ: {booking_code}
 Trạng thái: ĐÃ HỦY{reason_text}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Nếu bạn đã thanh toán, chúng tôi sẽ xử lý hoàn tiền theo chính sách hoàn vé.
-
 Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ bộ phận chăm sóc khách hàng.
 
 Trân trọng,

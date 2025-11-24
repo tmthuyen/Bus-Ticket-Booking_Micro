@@ -156,7 +156,7 @@ def verify_otp(
     repository.expire_old_otps(db)
     
     # Tìm OTP hợp lệ
-    db_otp = repository.get_valid_otp(db, otp_verify.email, otp_verify.otp)
+    db_otp = repository.get_valid_otp(db, otp_verify.email, otp_verify.booking_code, otp_verify.otp)
     
     if not db_otp:
         # Kiểm tra xem có OTP nào cho email này không
@@ -309,25 +309,25 @@ def send_booking_cancellation(
         data={"booking_code": cancellation_email.booking_code}
     )
 
-@app.post("/email/booking-refund", tags=["email"])
-def send_booking_refund(
-    refund_email: schemas.BookingRefundEmail,
-    background_tasks: BackgroundTasks
-):
-    """Gửi email thông báo hoàn tiền"""
+# @app.post("/email/booking-refund", tags=["email"])
+# def send_booking_refund(
+#     refund_email: schemas.BookingRefundEmail,
+#     background_tasks: BackgroundTasks
+# ):
+#     """Gửi email thông báo hoàn tiền"""
     
-    def send_refund_task():
-        utils.send_booking_refund_email(
-            receiver_email=refund_email.to_email,
-            booking_code=refund_email.booking_code,
-            customer_name=refund_email.customer_name,
-            refund_amount=refund_email.refund_amount
-        )
+#     def send_refund_task():
+#         utils.send_booking_refund_email(
+#             receiver_email=refund_email.to_email,
+#             booking_code=refund_email.booking_code,
+#             customer_name=refund_email.customer_name,
+#             refund_amount=refund_email.refund_amount
+#         )
     
-    background_tasks.add_task(send_refund_task)
+#     background_tasks.add_task(send_refund_task)
     
-    return response.successResponse(
-        status_code=status.HTTP_202_ACCEPTED,
-        msg="Email hoàn tiền đang được gửi",
-        data={"booking_code": refund_email.booking_code, "refund_amount": refund_email.refund_amount}
-    )
+#     return response.successResponse(
+#         status_code=status.HTTP_202_ACCEPTED,
+#         msg="Email hoàn tiền đang được gửi",
+#         data={"booking_code": refund_email.booking_code, "refund_amount": refund_email.refund_amount}
+#     )

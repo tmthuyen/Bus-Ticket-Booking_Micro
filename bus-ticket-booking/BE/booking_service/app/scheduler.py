@@ -2,13 +2,20 @@
 import logging
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from . import models, repository, rabbitmq_producer
+from . import models, repository
 from .database import SessionLocal
 
 
+producer = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def set_producer(producer_instance):
+    """Set global producer instance from main.py"""
+    global producer
+    producer = producer_instance
 
 
 def auto_cancel_expired_bookings():
@@ -28,7 +35,7 @@ def auto_cancel_expired_bookings():
         ).all()
         
         if not expired_bookings:
-            logger.info("No expired bookings found")
+            logger.info("=== No expired bookings found ===")
             return
         
         logger.info(f"Found {len(expired_bookings)} expired bookings")
@@ -43,26 +50,26 @@ def auto_cancel_expired_bookings():
                 cancelled_count += 1
                 
                 # Gửi email thông báo qua RabbitMQ (nếu producer đã được khởi tạo)
-                producer = rabbitmq_producer.get_producer()
+                global producer
                 if producer and producer.channel:
                     try:
-                        producer.publish_cancellation_notification(
-                            email=booking_update.email,
+                        producer.publish_booking_cancellation(
+                            to_email=booking_update.email,
                             booking_code=booking_update.booking_code,
                             customer_name=booking_update.full_name,
-                            reason="Thời gian giữ chỗ đã hết hạn"
+                            cancellation_reason="Thời gian giữ chỗ đã hết hạn"
                         )
-                        logger.info(f"Sent cancellation notification for booking {booking.booking_code}")
+                        logger.info(f"✅Sent cancellation notification for booking {booking.booking_code}")
                     except Exception as e:
-                        logger.error(f"Failed to send cancellation notification for booking {booking.booking_code}: {e}")
+                        logger.error(f"❌Failed to send cancellation notification for booking {booking.booking_code}: {e}")
                 
             except Exception as e:
-                logger.error(f"Failed to cancel booking {booking.booking_code}: {e}")
+                logger.error(f"❌Failed to cancel booking {booking.booking_code}: {e}")
                 db.rollback()
         
-        logger.info(f"Successfully cancelled {cancelled_count}/{len(expired_bookings)} expired bookings")
+        logger.info(f"✅Successfully cancelled {cancelled_count}/{len(expired_bookings)} expired bookings")
         
     except Exception as e:
-        logger.error(f"Error in auto_cancel_expired_bookings: {e}")
+        logger.error(f"❌Error in auto_cancel_expired_bookings: {e}")
     finally:
         db.close()
