@@ -46,11 +46,14 @@ class BookingResponse(BaseModel):
     status: str
     seat_quantity: int
     total_price: float
+    hold_until: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     
     # Danh sách ghế đã đặt
     seat_assignments: Optional[List[SeatAssignmentResponse]] = None
+    
+    trip: Optional[dict] = None
     
     model_config = ConfigDict(from_attributes=True)
 

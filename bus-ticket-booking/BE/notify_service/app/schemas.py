@@ -5,34 +5,23 @@ from . import models
 
 
 class OTPCreate(BaseModel):
-    """Schema tạo OTP mới"""
-    user_id: Optional[str] = Field(None, description="ID người dùng (NULL nếu khách vãng lai)")
+    """Schema tạo OTP mới - Xác thực email với booking"""
     email: EmailStr = Field(..., description="Email nhận OTP")
-    type: str = Field(..., description="Loại OTP: booking, refund, update")
-    booking_id: Optional[str] = Field(None, description="ID booking liên quan")
+    booking_code: str = Field(..., min_length=1, description="Mã booking")
 
 class OTPVerify(BaseModel):
     """Schema xác thực OTP"""
     email: EmailStr = Field(..., description="Email đã nhận OTP")
-    otp: str = Field(..., min_length=6, max_length=8, description="Mã OTP cần xác thực")
-    type: str = Field(..., description="Loại OTP: booking, refund, update")
+    booking_code: str = Field(..., min_length=1, description="Mã booking cần xác thực")
+    otp: str = Field(..., min_length=6, max_length=6, description="Mã OTP 6 chữ số")
     
-# class NotificationBase(BaseModel):
-#     username: str
-#     code: str
-#     expires_at: datetime
-#     used_at: Optional[datetime] = None
-#     created_at: Optional[datetime] = None
-#     class Config:
-#         from_attributes  = True
-
 class OTPResponse(BaseModel):
     """Schema trả về thông tin OTP"""
     id: str
     email: str
+    booking_code: str
     expiry_time: datetime
     status: str
-    type: str
     attempts: int
     created_at: datetime
     

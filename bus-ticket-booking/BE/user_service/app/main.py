@@ -123,5 +123,3 @@ def get_users(skip:int=0, limit:int=100, db:Session=Depends(get_db)):
                                      data=jsonable_encoder([schemas.UserResponse.model_validate(u).model_dump() for u in users])
                                         )
 
-
-    

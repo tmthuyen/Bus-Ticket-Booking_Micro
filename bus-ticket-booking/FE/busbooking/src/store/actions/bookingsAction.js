@@ -28,6 +28,8 @@ export const createBookingAction = (bookingData) => {
         type: BOOKINGS_ACTION_TYPES.CREATE_BOOKINGS_SUCCESS, 
         payload: { data: responseApi.data, message: "Tạo vé dự định thành công" } 
       });
+
+      return { success: true, data: responseApi.data, message: "Tạo vé dự định thành công" } ;
     } catch (error) {
       console.error("fetchRoutes error: ", error);
       const parsedError = parseAxiosError(error);
@@ -38,6 +40,12 @@ export const createBookingAction = (bookingData) => {
           message: parsedError.message || "Tạo vé dự định thất bại" 
         } 
       });
+
+      return {
+        success: false,
+        error: parsedError,
+        message: parsedError.message || "Tạo vé dự định thất bại"
+      }
     }
   }
 }
@@ -93,6 +101,7 @@ export const fetchTicketByCodeAndEmailAction = (code, email) => {
         type: BOOKINGS_ACTION_TYPES.FETCH_TICKET_BY_CODE_AND_EMAIL_SUCCESS, 
         payload: { data: responseApi.data, message: "Tra cứu vé thành công" }, 
       }); 
+      return responseApi.data;
     } catch (error) {
       console.error("fetchTicketByCodeAndEmailAction error: ", error); 
       const parsedError = parseAxiosError(error);

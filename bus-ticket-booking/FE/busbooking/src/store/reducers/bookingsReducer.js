@@ -95,6 +95,7 @@ const bookingsReducer = (state = initState, action) => {
     case bookingsAction.FETCH_TICKET_BY_CODE_AND_EMAIL_REQUEST:
       return {
         ...state,
+        ticketInfo: null,
         loading: true,
         error: null,
         success: false,

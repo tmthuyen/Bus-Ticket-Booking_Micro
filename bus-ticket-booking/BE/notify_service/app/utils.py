@@ -6,14 +6,13 @@ import ssl
 import logging
 import random
 import string
+from .config import settings
 
 logger = logging.getLogger(__name__)
-
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 465
-SENDER_EMAIL = "minhtuank27tdtu@gmail.com"
-SENDER_PASSWORD = "scxwnfestbszztcf"
-
+SMTP_SERVER = settings.smtp_server
+SMTP_PORT = settings.smtp_port
+SENDER_EMAIL = settings.sender_email
+SENDER_PASSWORD = settings.sender_password
 def send_email(receiver_email: str, subject: str, body: str, is_html: bool = False) -> bool:
     """
     Gửi email chung
@@ -101,8 +100,6 @@ Mã đặt chỗ: {booking_code}
 Trạng thái: ĐÃ HỦY{reason_text}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Nếu bạn đã thanh toán, chúng tôi sẽ xử lý hoàn tiền theo chính sách hoàn vé.
-
 Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ bộ phận chăm sóc khách hàng.
 
 Trân trọng,
@@ -160,34 +157,34 @@ def generate_otp_code(length: int = 6) -> str:
 def send_otp_email(
     receiver_email: str,
     otp_code: str,
-    otp_type: str,
+    booking_code: str,
     expiry_minutes: int = 5
 ) -> bool:
-    type_display = {
-        "booking": "XÁC THỰC ĐẶT VÉ",
-        "refund": "XÁC THỰC HOÀN TIỀN",
-        "update": "XÁC THỰC CẬP NHẬT THÔNG TIN"
-    }.get(otp_type, "XÁC THỰC")
+    """Gửi email chứa mã OTP để xác thực booking"""
     
-    subject = f"Mã OTP xác thực - {type_display}"
+    subject = f"Mã OTP xác thực Email - Booking {booking_code}"
     
     body = f"""
 Xin chào,
 
-Mã OTP của bạn để {type_display}:
+Bạn đã yêu cầu mã OTP để xác thực email cho booking {booking_code}.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         MÃ OTP: {otp_code}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⏰ Mã OTP này có hiệu lực trong {expiry_minutes} phút.
+📋 Mã Booking: {booking_code}
+⏰ Hiệu lực: {expiry_minutes} phút
 
-⚠️ LƯU Ý:
+⚠️ LƯU Ý QUAN TRỌNG:
 - KHÔNG chia sẻ mã OTP này với bất kỳ ai
-- Nếu bạn không yêu cầu mã OTP này, vui lòng bỏ qua email
+- Mã OTP chỉ được sử dụng MỘT LẦN
+- Nhập sai quá 5 lần sẽ phải yêu cầu mã mới
+- Nếu bạn không yêu cầu mã này, vui lòng bỏ qua email
 
 Trân trọng,
 Đội ngũ Hỗ trợ Khách hàng
+Bus Ticket Booking Service
 """
     
     return send_email(receiver_email, subject, body)

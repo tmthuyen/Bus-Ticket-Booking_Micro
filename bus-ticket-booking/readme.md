@@ -15,6 +15,12 @@
  - http://localhost:8003/bookings/docs
  - http://localhost:8004/payments/docs
  - http://localhost:8005/notifications/docs
+# Link Swagger Redoc:
+ - http://localhost:8001/users/redoc
+ - http://localhost:8002/trips/redoc
+ - http://localhost:8003/bookings/redoc
+ - http://localhost:8004/payments/redoc
+ - http://localhost:8005/notifications/redoc
 
 # Link Github: 
   - https://github.com/tmthuyen/SOA_Final_BusTicketBooking.git
@@ -65,3 +71,8 @@ docker compose down user_db
 docker volume rm bus-ticket-booking_user_db_data
 docker compose up -d user_db
 
+
+ 
+Lấy result từ link
+- Thành công: booking ? payment?
+- Thất bại: 

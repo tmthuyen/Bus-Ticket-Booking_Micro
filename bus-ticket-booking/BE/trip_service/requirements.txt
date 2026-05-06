@@ -8,3 +8,4 @@ dotenv
 sqlalchemy 
 mysql-connector-python
 python-jose[cryptography]  
+httpx

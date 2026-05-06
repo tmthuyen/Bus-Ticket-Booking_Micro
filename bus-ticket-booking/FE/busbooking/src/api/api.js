@@ -91,10 +91,11 @@ api.interceptors.response.use(
 
 // api error helper: bóc tách lỗi axios
 const parseAxiosError = (err) => {
+  console.log('Axios error response:', err);
   const resp = err?.response;
   return {
-    success: resp?.success,
-    data: resp?.data,
+    success: resp?.data?.success,
+    data: resp?.data?.data,
     message:
       resp?.data?.message ||
       resp?.data?.detail ||

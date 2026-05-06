@@ -3,14 +3,29 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session 
 from datetime import timedelta
 from typing import Annotated 
+import logging
 
-from . import repository, models, schemas, utils, response
+from . import repository, models, schemas, utils, response, helpers_api
 from .database import engine, get_db
 from .config import settings  
 from fastapi.middleware.cors import CORSMiddleware
+from . import rabbitmq_producer
+from . import scheduler
+from apscheduler.schedulers.background import BackgroundScheduler
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 models.Base.metadata.create_all(bind=engine)
- 
+# Khởi tạo Background Scheduler
+bg_scheduler = BackgroundScheduler()
+bg_scheduler.add_job(
+    scheduler.auto_cancel_expired_bookings,
+    'interval',
+    seconds=30, # Chạy mỗi 30 giây
+    id='auto_cancel_expired_bookings',
+    replace_existing=True
+)
 
 tags_metadata = [
     {
@@ -37,13 +52,57 @@ app.add_middleware( # cau hinh CORS
 )
 
 
+# RabbitMQ Producer instance
+producer = None
+
+@app.on_event("startup")
+def startup_event():
+    """Initialize RabbitMQ producer and background scheduler on startup"""
+    global producer
+    
+    rabbitmq_config = {
+        'host': settings.rabbitmq_host,
+        'port': settings.rabbitmq_port,
+        'username': settings.rabbitmq_user,
+        'password': settings.rabbitmq_password
+    }
+    
+    producer = rabbitmq_producer.get_producer(rabbitmq_config)
+    
+    if producer and producer.channel:
+        logger.info("RabbitMQ Producer initialized successfully")
+    else:
+        logger.warning("RabbitMQ Producer failed to initialize - falling back to HTTP notifications")
+    
+    # Set producer instance cho scheduler
+    scheduler.set_producer(producer)
+    
+    # Start background scheduler for auto-cancel expired bookings
+    bg_scheduler.start()
+    logger.info("Background Scheduler started - Auto-cancel expired bookings every 30 seconds")
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    """Cleanup on shutdown"""
+    global producer
+    if producer:
+        producer.close()
+    
+    # Shutdown background scheduler
+    bg_scheduler.shutdown()
+    logger.info("Background Scheduler stopped")
+    
+    logger.info("Booking Service shutdown complete")
+
+
 @app.get("/health", tags=["bookings"])
 def health_check():
     """Kiểm tra trạng thái hoạt động của dịch vụ đặt chỗ."""
     return {"status": "Booking Service is healthy"}
 
 @app.post("/", tags=["bookings"], status_code=status.HTTP_201_CREATED)
-def create_booking(
+async def create_booking(
     booking_data: schemas.BookingCreate,
     db: Session = Depends(get_db)
 ):
@@ -53,6 +112,7 @@ def create_booking(
     - Kiểm tra các ghế còn trống
     - Tạo booking với trạng thái PENDING
     - Tạo seat_assignments cho từng ghế
+    - Xác thực email sau khi tạo booking
     """
     # Validate dữ liệu
     is_valid, msg = utils.is_valid_booking_data(
@@ -98,16 +158,30 @@ def create_booking(
         booking_code=booking_code
     )
     
+    # Gửi OTP xác thực
+    try:
+        success, otp_response = await helpers_api.send_otp(
+            email=db_booking.email,
+            booking_code=db_booking.booking_code
+        )
+        if success:
+            logger.info(f"OTP sent successfully to {db_booking.email} for booking {db_booking.booking_code}")
+        else:
+            logger.error(f"Failed to send OTP for booking {db_booking.booking_code}: {otp_response}")
+    except Exception as e:
+        logger.error(f"Exception occurred while sending OTP: {e}")
+    
     return response.successResponse(
         status_code=status.HTTP_201_CREATED,
-        msg="Đặt vé thành công, vui lòng thanh toán trong 15 phút",
+        msg="Đặt vé thành công. OTP đã được gửi đến email của bạn. Vui lòng xác thực và thanh toán trong vòng 1 giờ",
         data={
             "booking_id": db_booking.id,
             "booking_code": db_booking.booking_code,
             "status": db_booking.status.value,
             "seat_quantity": db_booking.seat_quantity,
             "seat_numbers": booking_data.seat_numbers,
-            "total_price": float(db_booking.total_price)
+            "total_price": float(db_booking.total_price),
+            "hold_until": db_booking.hold_until.isoformat() if db_booking.hold_until else None
         }
     )
 
@@ -142,7 +216,7 @@ def get_all_bookings(
     )
 
 @app.get("/{booking_id}", tags=["bookings"])
-def get_booking_by_id(
+async def get_booking_by_id(
     booking_id: str,
     db: Session = Depends(get_db)
 ):
@@ -157,6 +231,20 @@ def get_booking_by_id(
     
     booking_response = schemas.BookingResponse.model_validate(db_booking)
     
+    try:
+        success, trip_data = await helpers_api.get_trip_by_id_of_trip_service(booking_response.trip_id)
+        if not success:
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg=trip_data.get("detail", "Error fetching trip information")
+            )
+        booking_response.trip = trip_data.get("data", {})
+    except Exception as e:
+        return response.errorResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            msg=str(e)
+        )
+     
     return response.successResponse(
         msg="Lấy thông tin booking thành công",
         data=booking_response.model_dump(mode='json')
@@ -206,8 +294,59 @@ def confirm_booking(
             msg=f"Không thể xác nhận booking với trạng thái {db_booking.status.value}"
         )
     
+    # Kiểm tra thời gian giữ chỗ có hết hạn không
+    if db_booking.hold_until:
+        from datetime import datetime, timezone
+        current_time = datetime.now(timezone.utc)
+        
+        # Đảm bảo db_booking.hold_until có timezone
+        hold_until = db_booking.hold_until
+        if hold_until.tzinfo is None:
+            hold_until = hold_until.replace(tzinfo=timezone.utc)
+        
+        if current_time > hold_until:
+            # Hết thời gian giữ chỗ -> Tự động hủy booking
+            repository.cancel_booking(db, booking_id)
+            
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg=f"Booking đã hết thời gian giữ chỗ (hết lúc {db_booking.hold_until.strftime('%Y-%m-%d %H:%M:%S')} UTC). Booking đã bị hủy tự động."
+            )
+    
     # Xác nhận booking
     updated_booking = repository.confirm_booking(db, booking_id)
+    
+    # Gửi email xác nhận qua RabbitMQ
+    global producer
+    if producer and producer.channel:
+        try:
+            seat_numbers = [seat.seat_number for seat in updated_booking.seat_assignments]
+            
+            # giờ Việt Nam (UTC+7)
+            vn_timezone = timezone(timedelta(hours=7))
+            booking_time_vn = updated_booking.created_at.replace(tzinfo=timezone.utc).astimezone(vn_timezone)
+            
+            logger.info(f"Attempting to publish booking confirmation for {updated_booking.booking_code}")
+            
+            result = producer.publish_booking_confirmation(
+                to_email=updated_booking.email,
+                booking_code=updated_booking.booking_code,
+                customer_name=updated_booking.full_name,
+                trip_info=f"Trip ID: {updated_booking.trip_id}",
+                seat_numbers=seat_numbers,
+                total_price=float(updated_booking.total_price),
+                booking_time=booking_time_vn.strftime("%d/%m/%Y %H:%M:%S")
+            )
+            
+            if result:
+                logger.info(f"✅ Published booking confirmation event for {updated_booking.booking_code}")
+            else:
+                logger.error(f"❌ Failed to publish booking confirmation (returned False) for {updated_booking.booking_code}")
+                
+        except Exception as e:
+            logger.error(f"❌ Exception while publishing booking confirmation: {e}", exc_info=True)
+    else:
+        logger.warning(f"Cannot send confirmation email - RabbitMQ producer not available")
     
     return response.successResponse(
         msg="Xác nhận booking thành công",
@@ -241,12 +380,22 @@ def cancel_booking(
             msg=f"Booking đã ở trạng thái {db_booking.status.value}"
         )
     
-    # Kiểm tra chính sách hủy vé (ví dụ: trước 24h)
-    # Giả sử booking_time là thời gian chuyến đi (cần lấy từ Trip Service)
-    # Tạm thời cho phép hủy
-    
     # Hủy booking
     updated_booking = repository.cancel_booking(db, booking_id)
+    
+    # Gửi email hủy booking qua RabbitMQ
+    global producer
+    if producer and producer.channel:
+        try:
+            producer.publish_booking_cancellation(
+                to_email=updated_booking.email,
+                booking_code=updated_booking.booking_code,
+                customer_name=updated_booking.full_name,
+                cancellation_reason="Khách hàng yêu cầu hủy"
+            )
+            logger.info(f"Published booking cancellation event for {updated_booking.booking_code}")
+        except Exception as e:
+            logger.error(f"Failed to publish booking cancellation: {e}")
     
     return response.successResponse(
         msg="Hủy booking thành công",
@@ -257,39 +406,53 @@ def cancel_booking(
         }
     )
 
-@app.put("/{booking_id}/refund", tags=["bookings"])
-def refund_booking(
-    booking_id: str,
-    db: Session = Depends(get_db)
-):
-    """
-    Hoàn tiền cho booking CANCELLED -> REFUNDED
-    """
-    db_booking = repository.get_booking_by_id(db, booking_id)
+# @app.put("/{booking_id}/refund", tags=["bookings"])
+# def refund_booking(
+#     booking_id: str,
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Hoàn tiền cho booking CANCELLED -> REFUNDED
+#     """
+#     db_booking = repository.get_booking_by_id(db, booking_id)
     
-    if not db_booking:
-        return response.errorResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            msg="Không tìm thấy booking"
-        )
+#     if not db_booking:
+#         return response.errorResponse(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             msg="Không tìm thấy booking"
+#         )
     
-    if db_booking.status != models.BookingStatus.CANCELLED:
-        return response.errorResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            msg="Chỉ có thể hoàn tiền cho booking đã hủy"
-        )
+#     if db_booking.status != models.BookingStatus.CANCELLED:
+#         return response.errorResponse(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             msg="Chỉ có thể hoàn tiền cho booking đã hủy"
+#         )
     
-    # Hoàn tiền
-    updated_booking = repository.refund_booking(db, booking_id)
+#     # Hoàn tiền
+#     updated_booking = repository.refund_booking(db, booking_id)
     
-    return response.successResponse(
-        msg="Hoàn tiền thành công",
-        data={
-            "booking_id": updated_booking.id,
-            "booking_code": updated_booking.booking_code,
-            "status": updated_booking.status.value
-        }
-    )
+#     # Gửi email hoàn tiền qua RabbitMQ
+#     global producer
+#     if producer and producer.channel:
+#         try:
+#             producer.publish_booking_refund(
+#                 to_email=updated_booking.email,
+#                 booking_code=updated_booking.booking_code,
+#                 customer_name=updated_booking.full_name,
+#                 refund_amount=float(updated_booking.total_price)
+#             )
+#             logger.info(f"Published booking refund event for {updated_booking.booking_code}")
+#         except Exception as e:
+#             logger.error(f"Failed to publish booking refund: {e}")
+    
+#     return response.successResponse(
+#         msg="Hoàn tiền thành công",
+#         data={
+#             "booking_id": updated_booking.id,
+#             "booking_code": updated_booking.booking_code,
+#             "status": updated_booking.status.value
+#         }
+#     )
 
 @app.get("/trip/{trip_id}/booked-seats", tags=["bookings"])
 def get_booked_seats_by_trip(
@@ -346,7 +509,7 @@ def get_bookings_by_customer_email(
     )
 #Lấy danh sách booking theo email và booking code
 @app.get("/search/{customer_email}/{booking_code}", tags=["bookings"])
-def search_booking_by_email_and_code(
+async def search_booking_by_email_and_code(
     customer_email: str,
     booking_code: str,
     db: Session = Depends(get_db)
@@ -361,6 +524,20 @@ def search_booking_by_email_and_code(
         )
     
     booking_response = schemas.BookingResponse.model_validate(db_booking)
+    
+    try:
+        success, trip_data = await helpers_api.get_trip_by_id_of_trip_service(booking_response.trip_id)
+        if not success:
+            return response.errorResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                msg=trip_data.get("detail", "Error fetching trip information")
+            )
+        booking_response.trip = trip_data.get("data", {})
+    except Exception as e:
+        return response.errorResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            msg=str(e)
+        )
     
     return response.successResponse(
         msg="Lấy thông tin booking thành công",

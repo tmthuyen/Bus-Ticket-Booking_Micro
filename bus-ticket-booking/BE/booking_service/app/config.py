@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     db_root_url: str = Field(..., env="DB_ROOT_URL")
     app_port: int = Field(8000, env="APP_PORT")
     
+    # RabbitMQ
+    rabbitmq_host: str = Field("rabbitmq", env="RABBITMQ_HOST")
+    rabbitmq_port: int = Field(5672, env="RABBITMQ_PORT")
+    rabbitmq_user: str = Field("guest", env="RABBITMQ_USER")
+    rabbitmq_password: str = Field("guest", env="RABBITMQ_PASSWORD")
+    
     @property
     def db_url(self) -> str:
         if self.db_type == "mysql":

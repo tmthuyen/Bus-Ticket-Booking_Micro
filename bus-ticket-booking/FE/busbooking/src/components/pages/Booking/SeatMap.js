@@ -2,8 +2,20 @@
 import { Box, Typography, Button } from '@mui/material';
 import { memo } from 'react';
 
-const SeatMap = ({ seats = [], selectedSeatIds = [], onToggleSeat }) => {
-  if (!seats.length) {
+const COLOR = {
+  is_booked: '#cdccccff', // red
+  available: '#52c41a', // green
+  selected: '#1890ff', // blue
+}
+
+const showColor = (seat, selected) => {
+  if (seat.is_booked) return COLOR.is_booked;
+  if (selected) return COLOR.selected;
+  return COLOR.available;
+}
+
+const SeatMap = ({ total_seats=0, total_booked=0, seats = [], selectedSeatIds = [], onToggleSeat }) => {
+  if (!seats.length || total_seats === 0) {
     return <Typography>Không có dữ liệu ghế.</Typography>;
   }
   console.log('Rendering SeatMap with seats:', seats);
@@ -23,6 +35,30 @@ const SeatMap = ({ seats = [], selectedSeatIds = [], onToggleSeat }) => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'row', gap: 3, justifyContent: 'space-around' }}>
+      {/* Màu sắc hướng dẫn */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant="subtitle1" fontWeight="bold">
+          Chú thích:
+      </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{ width: 24, height: 24, backgroundColor: COLOR.available, borderRadius: 1 }}
+          />
+          <Typography>Ghế trống</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{ width: 24, height: 24, backgroundColor: COLOR.is_booked, borderRadius: 1 }}
+          />
+          <Typography>Ghế đã đặt</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{ width: 24, height: 24, backgroundColor: COLOR.selected, borderRadius: 1 }}
+          />
+          <Typography>Ghế đã chọn</Typography>
+        </Box>  
+      </Box>
       {floors.map((floor) => {
         const seatsOnFloor = seats.filter((s) => s.floor === floor);
         const rows = [...new Set(seatsOnFloor.map((s) => s.row_index))].sort(
@@ -62,7 +98,7 @@ const SeatMap = ({ seats = [], selectedSeatIds = [], onToggleSeat }) => {
                     key={seat.seat_id}
                     variant={selected ? 'contained' : 'outlined'}
                     size="small"
-                    onClick={() => onToggleSeat?.(seat)}
+                    onClick={seat.is_booked ? null : () => onToggleSeat(seat)}
                     sx={{
                       minWidth: 48,
                       height: 36,
@@ -70,7 +106,10 @@ const SeatMap = ({ seats = [], selectedSeatIds = [], onToggleSeat }) => {
                       borderRadius: 1,
                       textTransform: 'none',
                       fontSize: 12,
-                      backgroundColor: selected ? 'primary.main' : 'white',
+                      cursor: seat.is_booked ? 'not-allowed' : 'pointer',
+                      pointerEvents: seat.is_booked ? 'none' : 'auto',
+                      // opacity: seat.is_booked ? 0.5 : 1,
+                      backgroundColor: showColor(seat, selected),
                       color: selected ? 'primary.contrastText' : 'text.primary',
                     }}
                   >

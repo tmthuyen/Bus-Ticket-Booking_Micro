@@ -14,12 +14,6 @@ class OTPStatus(enum.Enum):
     USED = "used"            # Đã sử dụng
     EXPIRED = "expired"      # Hết hạn
 
-# Enum cho loại OTP
-class OTPType(enum.Enum):
-    BOOKING = "booking"      # Xác thực khi đặt vé (khách vãng lai)
-    REFUND = "refund"        # Xác thực khi hoàn tiền
-    UPDATE = "update"        # Xác thực khi cập nhật thông tin
-
 # Bảng otps: Lưu mã OTP để xác thực
 class OTP(Base):
     __tablename__ = "otps"
@@ -30,15 +24,16 @@ class OTP(Base):
         default=lambda: str(uuid.uuid4()),
         index=True
     )
-    user_id: Mapped[Optional[str]] = mapped_column(
-        CHAR(36),
-        nullable=True,
-        index=True
-    )
     email: Mapped[str] = mapped_column(
         sa.String(255),
         nullable=False,
         index=True
+    )
+    booking_code: Mapped[str] = mapped_column(
+        sa.String(20),
+        nullable=False,
+        index=True,
+        comment="Mã booking cần xác thực"
     )
     otp: Mapped[str] = mapped_column(
         sa.String(10),
@@ -63,13 +58,4 @@ class OTP(Base):
         sa.Integer,
         nullable=False,
         server_default="0"
-    )
-    type: Mapped[OTPType] = mapped_column(
-        sa.Enum(OTPType, name="otp_type", native_enum=False),
-        nullable=False
-    )
-    booking_id: Mapped[Optional[str]] = mapped_column(
-        CHAR(36),
-        nullable=True,
-        index=True
     )

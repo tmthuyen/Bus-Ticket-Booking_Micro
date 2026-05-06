@@ -1,6 +1,7 @@
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
+  Button,
   Container,
   FormControl,
   FormControlLabel,
@@ -20,12 +21,19 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { fetchBookingByCodeAction } from '../../../store/actions/bookingsAction';
 import { fetchTripById } from '../../../store/actions/tripsAction';
+import api, { parseAxiosError } from '../../../api/api';
+import { message } from 'antd';
+import { useGlobalLoading } from '../../../context/LoadingContext';
 
 const PaymentPage = () => {
   // hooks
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch();
+  const [messageAnt, contextHolder] = message.useMessage();
+
+  // loading global state
+  const { setSpinning} = useGlobalLoading();
 
   // reducer state
   const { tripById: tripChosen } = useSelector((state) => state.trips);
@@ -34,30 +42,108 @@ const PaymentPage = () => {
 
   // local state
   const [method, setMethod] = useState(PAYMENT_METHOD.MOMO);
+  const [loadingPayment, setLoadingPayment] = useState(false);
 
   // query params
   const bookingCode = searchParams.get('bookingCode');
   const email = searchParams.get('email');
   const tripId = searchParams.get('tripId');
 
-  // get trip info 
+  // get trip info
 
   const { booking: bookingFromState } = location.state || {};
 
   // 🔹 Chỉ fetch từ API nếu KHÔNG có bookingFromState & chưa có bookingFromStore
   useEffect(() => {
-    if (!bookingFromState && bookingCode && !bookingFromStore) {
+    if (bookingCode) {
       dispatch(fetchBookingByCodeAction(bookingCode));
     }
-  }, [bookingCode, bookingFromState, bookingFromStore, dispatch]);
+  }, [bookingCode, dispatch]);
 
   useEffect(() => {
     dispatch(fetchTripById(tripId));
   }, [tripId, dispatch]);
 
-  const bookingInfo = bookingFromState || bookingFromStore;
+  const [bookingInfo, setBookingInfo] = useState(bookingFromState || bookingFromStore);
+
+  useEffect(() => {
+    setBookingInfo(bookingFromStore);
+  }, [bookingFromStore]);
+  // console.log('Booking info:', bookingInfo);
   // prepare props for BookingSummary
   const [bookingSummaryProps, setBookingSummaryProps] = useState({});
+
+  const handleSubmitPayment = async () => {
+    console.log('Submitting payment with method:', bookingInfo, method);
+
+    if (method === PAYMENT_METHOD.MOMO) {
+      // alert('Redirecting to MOMO payment gateway...');
+      const redirectUrl =
+          'http://localhost:3000/payment-return?' +
+          '&bookingCode=' +
+          bookingInfo?.booking_code +
+          '&email=' +
+          bookingInfo?.email +
+          '&tripId=' +
+          bookingInfo?.trip_id;
+
+        const ipnUrl = `${redirectUrl}`;
+
+        const payloadPayment = {
+          booking_id: bookingInfo?.id,
+          amount: bookingInfo?.total_price,
+          order_info: `Payment for booking code: ${bookingInfo?.booking_code}`,
+          payment_method: 'credit',
+          customer_name: bookingInfo?.full_name,
+          customer_phone: bookingInfo?.phone,
+          customer_email: bookingInfo?.email,
+          redirect_url: redirectUrl,
+          ipn_url: ipnUrl,
+        };
+
+        console.log('Payment payload MOMO:', payloadPayment);
+        setLoadingPayment(true);
+        setSpinning(true);
+
+      try { 
+        const resp = await api.post(
+          '/payments/payments/momo/create',
+          payloadPayment
+        );
+        console.log('MOMO payment response:', resp.data);
+        const { data, message } = resp.data;
+
+        if (!data || !data.payment_url) {
+          console.error('Invalid payment URL in response:', resp.data, message);
+          return;
+        }
+
+        messageAnt.success('Tạo thanh toán MOMO thành công! Đang chuyển hướng...');
+
+        setTimeout(() => {
+          // alert(
+          //   `Bạn sẽ được chuyển đến cổng thanh toán MOMO trong giây lát...`
+          // );
+          window.location.href = data?.payment_url;
+        }, 1500);
+      } catch (error) {
+
+        console.error('Error creating MOMO payment:', parseAxiosError(error));
+        messageAnt.error(
+          `Lỗi khi tạo thanh toán MOMO: ${parseAxiosError(error).message || error.message}`
+        ); 
+        
+      } finally {
+        setLoadingPayment(false);
+        setSpinning(false);
+      }
+
+    } else if (method === PAYMENT_METHOD.VNPAY) {
+      alert('Chua ho tro VNPAY');
+    } else {
+      alert('Please select a valid payment method.');
+    }
+  };
 
   useEffect(() => {
     setBookingSummaryProps({
@@ -97,6 +183,7 @@ const PaymentPage = () => {
 
   return (
     <>
+      {contextHolder}
       <Container maxWidth="lg" sx={{ mt: 1, mb: 4 }}>
         <Typography variant="h4" style={{ textAlign: 'center' }}>
           Payment Page
@@ -113,9 +200,21 @@ const PaymentPage = () => {
                 boxShadow: 'var(--box-shadow)',
                 // minHeight: '100vh',
                 padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               <PaymentChooseMethod method={method} setMethod={setMethod} />
+
+              <Button
+                variant="contained"
+                sx={{ mt: 2 }}
+                fullWidth
+                onClick={handleSubmitPayment}
+                loading={loadingPayment}
+              >
+                Thanh toán ngay
+              </Button>
             </Box>
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
