@@ -22,25 +22,7 @@
  - http://localhost:8004/payments/redoc
  - http://localhost:8005/notifications/redoc
 
-# Link Github: 
-  - https://github.com/tmthuyen/SOA_Final_BusTicketBooking.git
 
-# Link slide: 
-  - canva-xyz
-
-# Task
- + Thuyên: 
- + Tuấn: 
- + Tâm:  
- + Báo cáo + thuyết trình: All
-
-# Deadline:
-+ Ngày bắt đầu: 23/10/2025
-+ Hạn cung cấp API_URL và mô tả của các services: 12:00 5/11/2025
-+ Ngày hoàn thành code:  
-+ Ngày submit: 12:00 AM 25/11/2025
-
-# Cài đặt docker, mysql workbench, postman
 
 # Tại thư mục gốc:
 gõ lệnh (Cần bật docker app trước)
