@@ -22,25 +22,7 @@
  - http://localhost:8004/payments/redoc
  - http://localhost:8005/notifications/redoc
 
-# Link Github: 
-  - https://github.com/tmthuyen/SOA_Final_BusTicketBooking.git
 
-# Link slide: 
-  - canva-xyz
-
-# Task
- + Thuyên: 
- + Tuấn: 
- + Tâm:  
- + Báo cáo + thuyết trình: All
-
-# Deadline:
-+ Ngày bắt đầu: 23/10/2025
-+ Hạn cung cấp API_URL và mô tả của các services: 12:00 5/11/2025
-+ Ngày hoàn thành code:  
-+ Ngày submit: 12:00 AM 25/11/2025
-
-# Cài đặt docker, mysql workbench, postman
 
 # Tại thư mục gốc:
 gõ lệnh (Cần bật docker app trước)
@@ -76,3 +58,15 @@ docker compose up -d user_db
 Lấy result từ link
 - Thành công: booking ? payment?
 - Thất bại: 
+
+
+# Generate Trips
+INSERT INTO `trips`
+(`route_id`,`bus_id`,`departure_time`,`arrival_time`,`total_seats`,`status`,`created_at`,`updated_at`)
+VALUES
+  -- HCM -> Đà Nẵng, hôm nay 26/11/2025
+  (1, 3, '2025-11-26 08:00:00', '2025-11-27 03:10:00', 40, 'SCHEDULED', NOW(), NOW()),
+  (1, 3, '2025-11-26 10:00:00', '2025-11-27 05:10:00', 40, 'SCHEDULED', NOW(), NOW()),
+  (1, 3, '2025-11-26 14:00:00', '2025-11-27 09:10:00', 40, 'SCHEDULED', NOW(), NOW()),
+  (1, 3, '2025-11-26 18:00:00', '2025-11-27 13:10:00', 40, 'SCHEDULED', NOW(), NOW()),
+  (1, 3, '2025-11-26 22:00:00', '2025-11-27 17:10:00', 40, 'SCHEDULED', NOW(), NOW());
